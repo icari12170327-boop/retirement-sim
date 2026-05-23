@@ -122,18 +122,18 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
   <div class="input-section">
     <p class="sec-title"><span class="badge">+</span> 상속 재산 (선택)</p>
     <div class="grid gp">
-      <div class="block"><label>상속 금액 (만원)</label><input type="number" id="inp-inh" value="0" step="1000"/><div class="derived">0이면 비활성화 (명목)</div></div>
-      <div class="block"><label>상속 시점 (연도)</label><input type="number" id="inp-inh-y" value="2045" min="2026" max="2068"/><div class="derived" id="d-inh-age">검영님 — 세</div></div>
+      <div class="block"><label>상속 금액 (만원)</label><input type="number" id="inp-inh" value="30000" step="1000"/><div class="derived">0이면 비활성화 (명목)</div></div>
+      <div class="block"><label>상속 시점 (연도)</label><input type="number" id="inp-inh-y" value="2035" min="2026" max="2068"/><div class="derived" id="d-inh-age">검영님 — 세</div></div>
     </div>
   </div>
 
   <div class="input-section">
     <p class="sec-title"><span class="badge">-</span> 자녀 결혼자금 지원 <span style="font-size:10px;color:#7A7670;font-weight:400;margin-left:8px">※ 2026년 기준 명목 입력 → 인플레 자동 조정</span></p>
     <div class="grid g4">
-      <div class="block"><label>첫째 결혼자금 (만원, 2026기준)</label><input type="number" id="inp-w1" value="10000" step="500"/><div class="derived" id="d-w1-real">실지급액 —</div></div>
-      <div class="block"><label>첫째 결혼 연도</label><input type="number" id="inp-w1-y" value="2049" min="2030" max="2068"/><div class="derived" id="d-w1-age">자녀 — 세</div></div>
-      <div class="block"><label>둘째 결혼자금 (만원, 2026기준)</label><input type="number" id="inp-w2" value="10000" step="500"/><div class="derived" id="d-w2-real">실지급액 —</div></div>
-      <div class="block"><label>둘째 결혼 연도</label><input type="number" id="inp-w2-y" value="2051" min="2030" max="2068"/><div class="derived" id="d-w2-age">자녀 — 세</div></div>
+      <div class="block"><label>첫째 결혼자금 (만원, 2026기준)</label><input type="number" id="inp-w1" value="20000" step="500"/><div class="derived" id="d-w1-real">실지급액 —</div></div>
+      <div class="block"><label>첫째 결혼 연도</label><input type="number" id="inp-w1-y" value="2045" min="2030" max="2068"/><div class="derived" id="d-w1-age">자녀 — 세</div></div>
+      <div class="block"><label>둘째 결혼자금 (만원, 2026기준)</label><input type="number" id="inp-w2" value="20000" step="500"/><div class="derived" id="d-w2-real">실지급액 —</div></div>
+      <div class="block"><label>둘째 결혼 연도</label><input type="number" id="inp-w2-y" value="2047" min="2030" max="2068"/><div class="derived" id="d-w2-age">자녀 — 세</div></div>
     </div>
   </div>
 
@@ -232,7 +232,7 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
   <!-- 💥 하락장 충격 -->
   <div class="input-section crash">
     <p class="sec-title">💥 하락장 충격 시뮬레이션 <span class="section-tag crash">신규</span></p>
-    <p class="sec-sub">특정 연도에 <b>일회성 폭락</b>이 발생한다면? 정상 시나리오와 비교.</p>
+    <p class="sec-sub">특정 연도에 <b>일회성 폭락</b>이 발생한다면? 정상 시나리오와 비교. <b>인출액은 정상과 동일</b>(계획된 생활비 가정).</p>
     <div class="grid g4">
       <div class="block">
         <label>하락 연도</label>
@@ -259,7 +259,7 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
     <div class="grid g4">
       <div class="card"><div class="lbl">정상 시나리오<br>2040년 자산</div><div class="val" id="cr-normal">—</div><div class="sub">변동성 없음</div></div>
       <div class="card"><div class="lbl">충격 시나리오<br>2040년 자산</div><div class="val" id="cr-crash">—</div><div class="sub" id="cr-crash-sub">충격 후 회복</div></div>
-      <div class="card"><div class="lbl">충격 영향<br>(자산 차이)</div><div class="val" id="cr-diff">—</div><div class="sub">정상 대비 손실</div></div>
+      <div class="card"><div class="lbl">충격 영향<br>(85세 자산 차이)</div><div class="val" id="cr-diff">—</div><div class="sub">장기 손실 추정</div></div>
       <div class="card"><div class="lbl">100세 도달 가능?<br>(자산 고갈)</div><div class="val" id="cr-status">—</div><div class="sub" id="cr-status-sub">—</div></div>
     </div>
     <div id="cr-banner"></div>
@@ -353,7 +353,8 @@ function getInputs(){
 }
 
 // 핵심 시뮬레이션: returnFn(y)으로 매년 수익률 받음 (단일/MC/하락장 모두 지원)
-function simulateCore(inp, returnFn, endYear){
+// forcedBaseWithdraw: 지정 시 60세 자산과 무관하게 이 금액으로 인출 (하락장 비교용)
+function simulateCore(inp, returnFn, endYear, forcedBaseWithdraw){
   endYear = endYear || 2068;
   const ir=inp.inf/100;
   let p1=INIT.p1,p2=INIT.p2,p3=INIT.p3;
@@ -407,7 +408,8 @@ function simulateCore(inp, returnFn, endYear){
     // 60세 시점 자산 (인출 전) 저장
     if(y===RETIRE_YEAR){
       assetAtRetire=Math.max(0,p1+p2+p3);
-      baseWithdraw=assetAtRetire*inp.wr/100;
+      // 강제 인출액이 지정되면 그것을 사용 (하락장 비교용), 아니면 자산 × wr%
+      baseWithdraw = (forcedBaseWithdraw !== undefined) ? forcedBaseWithdraw : assetAtRetire*inp.wr/100;
     }
     
     // 60세 당해부터 인출 (수정: y>=RETIRE_YEAR)
@@ -572,7 +574,8 @@ function runCrash(){
   const crec = parseInt(document.getElementById('inp-cr-rec').value);
   const baseRate = inp.rate/100;
   
-  const {A:normalPath, depleteYear: normalDeplete} = simulateCore(inp, ()=>baseRate);
+  const {A:normalPath, depleteYear: normalDeplete, baseWithdraw: normalBaseWithdraw} = simulateCore(inp, ()=>baseRate);
+  // 충격 시나리오는 정상 시나리오의 인출액을 강제로 사용 (계획된 생활비 가정)
   const {A:crashPath, depleteYear: crashDeplete} = simulateCore(inp, (y)=>{
     if(y===cy) return cpct;
     if(y>cy && y<=cy+crec){
@@ -580,18 +583,22 @@ function runCrash(){
       return baseRate + recoveryBoost;
     }
     return baseRate;
-  });
+  }, undefined, normalBaseWithdraw);
   
   const normal2040 = normalPath.find(d=>d.y===2040).total/1e8;
   const crash2040 = crashPath.find(d=>d.y===2040).total/1e8;
-  const diff = normal2040 - crash2040;
+  
+  // 85세(2065년) 시점 자산 비교 - 장기 영향 평가
+  const normal85 = (normalPath.find(d=>d.y===2065)?.total || 0)/1e8;
+  const crash85 = (crashPath.find(d=>d.y===2065)?.total || 0)/1e8;
+  const diff85 = normal85 - crash85;
   
   document.getElementById('cr-result').style.display = 'block';
   document.getElementById('cr-normal').textContent = normal2040.toFixed(1)+'억';
   document.getElementById('cr-crash').textContent = crash2040.toFixed(1)+'억';
   document.getElementById('cr-crash-sub').textContent = `${cy}년 ${(cpct*100).toFixed(0)}% 후 ${crec}년 회복`;
-  document.getElementById('cr-diff').textContent = '-' + diff.toFixed(1)+'억';
-  document.getElementById('cr-diff').className = 'val ' + (diff<1?'pos':(diff<3?'warn':'neg'));
+  document.getElementById('cr-diff').textContent = (diff85>=0?'-':'+') + Math.abs(diff85).toFixed(1)+'억';
+  document.getElementById('cr-diff').className = 'val ' + (diff85<1?'pos':(diff85<3?'warn':'neg'));
   
   // 100세 도달 (자산 고갈 여부)
   if(crashDeplete){
@@ -604,16 +611,31 @@ function runCrash(){
     document.getElementById('cr-status-sub').textContent = `88세까지 자산 유지`;
   }
   
+  // 평가 배너: 고갈 여부 우선, 그 다음 장기 자산 차이
   const banner = document.getElementById('cr-banner');
-  if(diff < 1){
+  if(crashDeplete && !normalDeplete){
+    // 충격만 고갈 → 가장 심각
+    banner.className = 'success-banner bad';
+    banner.innerHTML = `❌ <b>충격이 노후 자산 고갈 유발</b>: 정상 시나리오는 자산 유지되지만 충격 시 <b>${crashDeplete}년(${crashDeplete-BIRTH_YEAR}세) 고갈</b>. 인출률 축소, 충격 후 지출 절감, 또는 더 긴 회복 기간 가정 검토.`;
+  } else if(crashDeplete && normalDeplete && crashDeplete < normalDeplete){
+    // 둘 다 고갈되지만 충격이 더 빠름
+    const yearsLost = normalDeplete - crashDeplete;
+    if(yearsLost >= 5){
+      banner.className = 'success-banner bad';
+      banner.innerHTML = `❌ <b>충격이 자산 수명 ${yearsLost}년 단축</b>: 정상 ${normalDeplete}년 → 충격 <b>${crashDeplete}년</b> 고갈. 큰 영향.`;
+    } else {
+      banner.className = 'success-banner warn';
+      banner.innerHTML = `⚠️ <b>충격으로 자산 수명 ${yearsLost}년 단축</b>: 정상 ${normalDeplete}년 → 충격 ${crashDeplete}년.`;
+    }
+  } else if(diff85 < 1){
     banner.className = 'success-banner good';
-    banner.innerHTML = `✅ <b>충격 흡수 양호</b>: ${(cpct*100).toFixed(0)}% 하락 + ${crec}년 회복에도 자산 차이 ${diff.toFixed(1)}억. 검영님 시스템은 단기 충격에 강합니다.`;
-  } else if(diff < 3){
+    banner.innerHTML = `✅ <b>충격 흡수 양호</b>: 85세 자산 차이 ${diff85.toFixed(1)}억. 검영님 시스템은 단기 충격에 강합니다.`;
+  } else if(diff85 < 3){
     banner.className = 'success-banner warn';
-    banner.innerHTML = `⚠️ <b>의미 있는 영향</b>: 자산 ${diff.toFixed(1)}억 감소. 메모리 #1 "타이밍 안 맞춤" 원칙 → 폭락기 매도 금지, 지속 매수.`;
+    banner.innerHTML = `⚠️ <b>의미 있는 영향</b>: 85세 자산이 ${diff85.toFixed(1)}억 감소. 메모리 #1 "타이밍 안 맞춤" 원칙 → 폭락기 매도 X, 지속 매수.`;
   } else {
     banner.className = 'success-banner bad';
-    banner.innerHTML = `❌ <b>큰 영향</b>: 자산 ${diff.toFixed(1)}억 감소. 회복 기간 5년 가정 또는 인출률 축소 검토 필요.`;
+    banner.innerHTML = `❌ <b>큰 영향</b>: 85세 자산 ${diff85.toFixed(1)}억 감소. 회복 기간 5년 가정 또는 인출률 축소 검토 필요.`;
   }
   
   const labels = normalPath.filter(d=>d.y<=2068).map(d=>d.y);
