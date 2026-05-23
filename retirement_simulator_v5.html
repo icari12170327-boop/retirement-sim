@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>검영님 은퇴자금 시뮬레이터 v5</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Segoe UI",sans-serif;background:#FAFAF7;color:#2B2B2B;padding:20px;line-height:1.5}
+.container{max-width:1100px;margin:0 auto;background:#FFF;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.05);padding:24px;border:1px solid #E8E5DE}
+h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
+.subtitle{font-size:13px;color:#7A7670;margin-bottom:20px}
+.sec-title{font-size:14px;font-weight:600;color:#2B2B2B;margin:0 0 10px;letter-spacing:-0.01em;display:flex;align-items:center;gap:6px}
+.sec-sub{font-size:12px;color:#7A7670;margin:0 0 10px}
+.grid{display:grid;gap:10px;margin-bottom:18px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.gp{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.block{display:flex;flex-direction:column;gap:4px}
+.block label{font-size:11.5px;color:#7A7670;font-weight:500}
+.block input{padding:8px 11px;font-size:14px;border:1px solid #D8D4CC;border-radius:6px;background:#FFF;color:#2B2B2B;transition:border-color 0.15s}
+.block input:focus{outline:none;border-color:#185FA5}
+.derived{font-size:11px;color:#7A7670;line-height:1.4}
+.card{background:#F5F3EE;border-radius:6px;padding:12px 14px;text-align:center;border:1px solid #E8E5DE}
+.card .lbl{font-size:11px;color:#7A7670;margin-bottom:5px;line-height:1.3;font-weight:500}
+.card .val{font-size:19px;font-weight:600;color:#2B2B2B;line-height:1.2;letter-spacing:-0.01em}
+.card .val.pos{color:#0F6E56}
+.card .val.neg{color:#A32D2D}
+.card .sub{font-size:10.5px;color:#7A7670;margin-top:3px}
+.divider{border:none;border-top:1px solid #E8E5DE;margin:22px 0}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:12px;color:#7A7670}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px}
+.cwrap{position:relative;width:100%}
+.note{font-size:11px;color:#7A7670;margin-top:8px;line-height:1.6}
+.event-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
+.event-item{background:#F5F3EE;border-radius:6px;padding:10px 12px;font-size:11.5px;color:#2B2B2B;line-height:1.5;border:1px solid #E8E5DE}
+.event-item .year{font-weight:600;color:#185FA5}
+.event-item.income{border-left:3px solid #0F6E56}
+.event-item.outgo{border-left:3px solid #A32D2D}
+.input-section{background:#FCFBF8;border-radius:8px;padding:16px;border:1px solid #E8E5DE;margin-bottom:14px}
+.input-section .badge{display:inline-block;font-size:10px;background:#185FA5;color:#FFF;padding:1px 6px;border-radius:3px;font-weight:500}
+.info-banner{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#1E40AF;line-height:1.6}
+.info-banner b{font-weight:600}
+.toggle-btn{font-size:11px;color:#185FA5;background:transparent;border:none;cursor:pointer;padding:0;text-decoration:underline}
+.collapsed{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>검영님 은퇴자금 시뮬레이터 v5</h1>
+  <p class="subtitle">상속 재산 + 자녀 결혼자금 시점 조정 가능 — 디테일 강화</p>
+
+  <div class="info-banner">
+    <b>💡 v5 변경점:</b> 상속 재산(시점 포함) + 자녀 1·2 결혼자금(시점 포함)을 입력해 정밀 시뮬레이션. 
+    상속은 입력 시점에 포폴에 편입, 결혼자금은 입력 시점에 포폴에서 차감.
+  </div>
+
+  <!-- 섹션 1: 기본 변수 -->
+  <div class="input-section">
+    <p class="sec-title">📊 기본 변수</p>
+    <div class="grid g3">
+      <div class="block">
+        <label>퇴직금 (만원)</label>
+        <input type="number" id="inp-sev" value="35000" step="500"/>
+        <div class="derived">2040년 편입</div>
+      </div>
+      <div class="block">
+        <label>월 투자액 (만원)</label>
+        <input type="number" id="inp-mon" value="142" step="10"/>
+        <div class="derived">포폴#1 한정</div>
+      </div>
+      <div class="block">
+        <label>연 수익률 (%)</label>
+        <input type="number" id="inp-rate" value="7.5" step="0.5"/>
+        <div class="derived">7.5% 중립</div>
+      </div>
+      <div class="block">
+        <label>국민연금 (만원/月)</label>
+        <input type="number" id="inp-nps" value="168" step="10"/>
+        <div class="derived">65세~</div>
+      </div>
+      <div class="block">
+        <label>인플레이션율 (%)</label>
+        <input type="number" id="inp-inf" value="2.2" step="0.1"/>
+        <div class="derived">한국 평균 2~2.6%</div>
+      </div>
+      <div class="block">
+        <label>인출률 (%)</label>
+        <input type="number" id="inp-wr" value="4.0" step="0.25"/>
+        <div class="derived" id="d-withdraw">→ 60세 월 인출: —만</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 2: 상속 재산 -->
+  <div class="input-section">
+    <p class="sec-title"><span class="badge">+</span> 상속 재산 (선택)</p>
+    <div class="grid gp">
+      <div class="block">
+        <label>상속 금액 (만원)</label>
+        <input type="number" id="inp-inh" value="0" step="1000"/>
+        <div class="derived">0이면 비활성화</div>
+      </div>
+      <div class="block">
+        <label>상속 시점 (연도)</label>
+        <input type="number" id="inp-inh-y" value="2045" min="2026" max="2068" step="1"/>
+        <div class="derived" id="d-inh-age">검영님 — 세</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 3: 자녀 결혼자금 -->
+  <div class="input-section">
+    <p class="sec-title"><span class="badge">-</span> 자녀 결혼자금 지원</p>
+    <div class="grid g4">
+      <div class="block">
+        <label>첫째 결혼자금 (만원)</label>
+        <input type="number" id="inp-w1" value="10000" step="500"/>
+        <div class="derived">평균 7천만 ~ 1.5억</div>
+      </div>
+      <div class="block">
+        <label>첫째 결혼 연도</label>
+        <input type="number" id="inp-w1-y" value="2049" min="2030" max="2068" step="1"/>
+        <div class="derived" id="d-w1-age">자녀 — 세</div>
+      </div>
+      <div class="block">
+        <label>둘째 결혼자금 (만원)</label>
+        <input type="number" id="inp-w2" value="10000" step="500"/>
+        <div class="derived">평균 7천만 ~ 1.5억</div>
+      </div>
+      <div class="block">
+        <label>둘째 결혼 연도</label>
+        <input type="number" id="inp-w2-y" value="2051" min="2030" max="2068" step="1"/>
+        <div class="derived" id="d-w2-age">자녀 — 세</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="sec-title">🎯 핵심 지표</p>
+  <div class="grid g4">
+    <div class="card">
+      <div class="lbl">2040년 자산<br>(명목)</div>
+      <div class="val" id="m-asset">—</div>
+      <div class="sub" id="m-asset-real">실질 —</div>
+    </div>
+    <div class="card">
+      <div class="lbl">월소득<br>(60~64세)</div>
+      <div class="val" id="m-i60">—</div>
+      <div class="sub" id="m-i60-real">실질 —</div>
+    </div>
+    <div class="card">
+      <div class="lbl">월소득<br>(65세~)</div>
+      <div class="val" id="m-i65">—</div>
+      <div class="sub" id="m-i65-real">실질 —</div>
+    </div>
+    <div class="card">
+      <div class="lbl">목표 대비<br>(60세 명목)</div>
+      <div class="val" id="m-gap">—</div>
+      <div class="sub" id="m-target-inf">2040년 명목 목표 —</div>
+    </div>
+  </div>
+
+  <!-- 추가 카드: 결혼 후 자산, 상속 후 자산 등 -->
+  <div class="grid g4" style="margin-top:10px">
+    <div class="card">
+      <div class="lbl">결혼지원 후 자산<br>(2052년)</div>
+      <div class="val" id="m-postw">—</div>
+      <div class="sub">결혼 자금 차감 반영</div>
+    </div>
+    <div class="card">
+      <div class="lbl">상속 후 자산<br>(상속 시점)</div>
+      <div class="val" id="m-postinh">—</div>
+      <div class="sub" id="m-postinh-y">시점 —</div>
+    </div>
+    <div class="card">
+      <div class="lbl">85세 시점 자산<br>(생존 검토)</div>
+      <div class="val" id="m-85">—</div>
+      <div class="sub">자산 고갈 여부 점검</div>
+    </div>
+    <div class="card">
+      <div class="lbl">상속 후 평생 인출률</div>
+      <div class="val" id="m-burn">—</div>
+      <div class="sub">자산 유지 가능성</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <p class="sec-title">📈 연도별 자산 추이</p>
+  <p class="sec-sub">2026~2068년 (88세). 학자금·퇴직금·결혼자금·상속 모두 반영</p>
+  <div class="legend">
+    <span><i style="background:#185FA5"></i>명목 자산</span>
+    <span><i style="background:#999"></i>실질 자산 (2026년 기준)</span>
+  </div>
+  <div class="cwrap" style="height:300px">
+    <canvas id="ch-asset"></canvas>
+  </div>
+
+  <hr class="divider">
+
+  <p class="sec-title">💰 은퇴 후 월소득 구성 (만원)</p>
+  <p class="sec-sub">2040~2068년 (60~88세)</p>
+  <div class="legend">
+    <span><i style="background:#185FA5"></i>투자자산 인출(전체×4%)</span>
+    <span><i style="background:#1D9E75"></i>비과세 연금</span>
+    <span><i style="background:#BA7517"></i>국민연금</span>
+    <span><i style="background:#7F77DD"></i>종신보험(60~73세)</span>
+    <span><i style="background:#C25B7E"></i>일시금(月환산)</span>
+  </div>
+  <div class="cwrap" style="height:300px">
+    <canvas id="ch-inc"></canvas>
+  </div>
+
+  <hr class="divider">
+
+  <p class="sec-title">🎁 주요 이벤트 타임라인</p>
+  <div class="event-list" id="event-list">
+    <!-- 동적 생성 -->
+  </div>
+  <p class="note">
+    * <b>통합 운용 방식</b>: 퇴직금·상속재산 모두 포폴에 편입 후 <b>전체 자산 × 4%</b>로 일괄 인출.<br>
+    * <b>결혼자금</b>: 입력 연도에 포폴에서 일시 차감 → 이후 자산 인출액 자동 감소.<br>
+    * <b>상속재산</b>: 입력 연도에 포폴에 편입 → 이후 자산 인출액 자동 증가.<br>
+    * 종신보험 KB Plus: 연 250만 × 60~73세 14년만 별도. 비과세 연금 1,000만/년 (60~73세) → 600만/년 (74세~).<br>
+    * 학자금 세금: 매년 인플레 반영(2025년 등록금 710만 기준). 2035~2038 비과세 연금 1,000만/년 상쇄.
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const INIT={p1:77057424,p2:10111812,p3:39817466};
+const ANNUAL_P2=3000000;
+const BASE_TUITION=7100000;
+const ISA_REBATE_2028=396000;
+const BIRTH_YEAR=1980;
+const CHILD1_BIRTH=2016; // 2026년 초5 → 2016년생 추정
+const CHILD2_BIRTH=2018; // 2026년 초3 → 2018년생 추정
+
+const LUMP={
+  2035:9000000,
+  2050:9800000,
+  2051:5000000,
+  2057:16200000,
+  2060:9600000,
+  2068:12000000
+};
+
+function simulate(sev,mon,rate,nps,inf,wr,inhA,inhY,w1A,w1Y,w2A,w2Y){
+  const mr=Math.pow(1+rate/100,1/12)-1;
+  const ir=inf/100;
+  let p1=INIT.p1,p2=INIT.p2,p3=INIT.p3;
+  const A=[],I=[];
+
+  for(let y=2026;y<=2068;y++){
+    if(y<=2040) p2+=ANNUAL_P2;
+    for(let m=0;m<12;m++){
+      if(y<=2040){
+        p1=p1*(1+mr)+mon*10000;
+        p2=p2*(1+mr);
+      } else {
+        p1=p1*(1+mr);
+        p2=p2*(1+mr);
+      }
+      p3=p3*(1+mr);
+    }
+
+    // ISA 환급
+    if(y===2028) p1+=ISA_REBATE_2028;
+
+    // 학자금 세금 (2033~2038)
+    if(y>=2033&&y<=2038){
+      const inflated=BASE_TUITION*Math.pow(1+ir,y-2025);
+      let students=1;
+      if(y===2034||y===2035||y===2036) students=2;
+      const tax=inflated*students*0.385;
+      let offset=0;
+      if(y===2035) offset=1000000*(2/12);
+      else if(y>=2036) offset=1000000;
+      p1-=Math.max(0,tax-offset);
+    }
+
+    // 퇴직금 (2040)
+    if(y===2040) p1+=sev*10000;
+
+    // 자녀 결혼자금 (차감)
+    if(y===w1Y&&w1A>0) p1-=w1A*10000;
+    if(y===w2Y&&w2A>0) p1-=w2A*10000;
+
+    // 상속 재산 (편입)
+    if(y===inhY&&inhA>0) p1+=inhA*10000;
+
+    const total=p1+p2+p3;
+    const yrFrom2026=y-2026;
+    const realFactor=Math.pow(1+ir,yrFrom2026);
+    A.push({y,nom:Math.round(total/1e7)/10,real:Math.round(total/realFactor/1e7)/10,raw:total});
+
+    if(y>=2040){
+      const withdraw=Math.round(total*wr/100/12/10000);
+      const insurance=y<=2073?Math.round(250/12):0;
+      const pension=y<=2073?Math.round(1000/12):Math.round(600/12);
+      const npsVal=y>=2045?nps:0;
+      const lumpMonthly=LUMP[y]?Math.round(LUMP[y]/12/10000):0;
+      I.push({y,withdraw,pension,nps:npsVal,insurance,lump:lumpMonthly});
+    } else {
+      I.push({y,withdraw:0,pension:0,nps:0,insurance:0,lump:0});
+    }
+  }
+  return{A,I};
+}
+
+let cA=null,cI=null;
+function build(A,I){
+  if(cA) cA.destroy();
+  if(cI) cI.destroy();
+
+  cA=new Chart(document.getElementById('ch-asset'),{
+    type:'line',
+    data:{labels:A.map(d=>d.y),datasets:[
+      {label:'명목',data:A.map(d=>d.nom),borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,0.08)',fill:true,tension:0.25,pointRadius:1.5,borderWidth:2.5},
+      {label:'실질',data:A.map(d=>d.real),borderColor:'#999',borderDash:[4,3],fill:false,tension:0.25,pointRadius:1.5,borderWidth:1.5}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index'},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>`${v.dataset.label}: ${v.parsed.y}억`}}},
+      scales:{
+        x:{ticks:{font:{size:10.5},maxRotation:60,autoSkip:true,maxTicksLimit:15},grid:{color:'rgba(128,128,128,0.06)'}},
+        y:{ticks:{font:{size:11},callback:v=>`${v}억`},grid:{color:'rgba(128,128,128,0.08)'}}
+      }
+    }
+  });
+
+  const iD=I.filter(d=>d.y>=2040&&d.y<=2068);
+  cI=new Chart(document.getElementById('ch-inc'),{
+    type:'bar',
+    data:{labels:iD.map(d=>d.y),datasets:[
+      {label:'투자자산 인출',data:iD.map(d=>d.withdraw),backgroundColor:'#185FA5',stack:'s'},
+      {label:'비과세 연금',data:iD.map(d=>d.pension),backgroundColor:'#1D9E75',stack:'s'},
+      {label:'국민연금',data:iD.map(d=>d.nps),backgroundColor:'#BA7517',stack:'s'},
+      {label:'종신보험',data:iD.map(d=>d.insurance),backgroundColor:'#7F77DD',stack:'s'},
+      {label:'일시금(月환산)',data:iD.map(d=>d.lump),backgroundColor:'#C25B7E',stack:'s'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index'},
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        footer:items=>`합계: ${Math.round(items.reduce((s,i)=>s+i.parsed.y,0))}만`
+      }}},
+      scales:{
+        x:{stacked:true,ticks:{font:{size:10.5},maxRotation:60,autoSkip:false},grid:{display:false}},
+        y:{stacked:true,ticks:{font:{size:11},callback:v=>`${v}만`},grid:{color:'rgba(128,128,128,0.08)'},min:0}
+      }
+    }
+  });
+}
+
+function renderEvents(inhA,inhY,w1A,w1Y,w2A,w2Y){
+  const events=[
+    {y:2028,kind:'income',text:`ISA 1차 만기 풍차 환급 <b>39.6만</b>`},
+    {y:2035,age:55,kind:'income',text:`비과세연금 개시 일시 <b>900만</b><br>(여행 600 + 축하 300)`},
+    {y:2040,age:60,kind:'income',text:`퇴직금 <b>${(parseInt(document.getElementById('inp-sev').value)/10000).toFixed(1)}억</b> 편입`},
+    {y:2050,age:70,kind:'income',text:`장수축하금 480 + 보험 만기 500<br>= <b>980만</b>`},
+    {y:2051,age:71,kind:'income',text:`90년대 보험 만기 잔여 <b>500만</b>`},
+    {y:2057,age:77,kind:'income',text:`장수 720 + 건강축하 900<br>= <b>1,620만</b>`},
+    {y:2060,age:80,kind:'income',text:`장수축하금 <b>960만</b>`},
+    {y:2068,age:88,kind:'income',text:`장수축하금 <b>1,200만</b>`}
+  ];
+
+  if(inhA>0) events.push({y:inhY,age:inhY-BIRTH_YEAR,kind:'income',text:`<b>상속 재산</b> ${(inhA/10000).toFixed(1)}억 편입`});
+  if(w1A>0) events.push({y:w1Y,age:w1Y-CHILD1_BIRTH,kind:'outgo',text:`<b>첫째 결혼자금</b> ${(w1A/10000).toFixed(1)}억 지원<br>(자녀 ${w1Y-CHILD1_BIRTH}세)`});
+  if(w2A>0) events.push({y:w2Y,age:w2Y-CHILD2_BIRTH,kind:'outgo',text:`<b>둘째 결혼자금</b> ${(w2A/10000).toFixed(1)}억 지원<br>(자녀 ${w2Y-CHILD2_BIRTH}세)`});
+
+  events.sort((a,b)=>a.y-b.y);
+
+  const html=events.map(e=>{
+    const ageStr=e.age?` (${e.age}세)`:'';
+    return `<div class="event-item ${e.kind}"><span class="year">${e.y}${ageStr}</span><br>${e.text}</div>`;
+  }).join('');
+  document.getElementById('event-list').innerHTML=html;
+}
+
+function update(){
+  const sev=parseFloat(document.getElementById('inp-sev').value)||33000;
+  const mon=parseFloat(document.getElementById('inp-mon').value)||142;
+  const rate=parseFloat(document.getElementById('inp-rate').value)||7.5;
+  const nps=parseFloat(document.getElementById('inp-nps').value)||168;
+  const inf=parseFloat(document.getElementById('inp-inf').value)||2.2;
+  const wr=parseFloat(document.getElementById('inp-wr').value)||4.0;
+  const inhA=parseFloat(document.getElementById('inp-inh').value)||0;
+  const inhY=parseInt(document.getElementById('inp-inh-y').value)||2045;
+  const w1A=parseFloat(document.getElementById('inp-w1').value)||0;
+  const w1Y=parseInt(document.getElementById('inp-w1-y').value)||2049;
+  const w2A=parseFloat(document.getElementById('inp-w2').value)||0;
+  const w2Y=parseInt(document.getElementById('inp-w2-y').value)||2051;
+
+  // 파생 정보 표시
+  document.getElementById('d-inh-age').textContent=`검영님 ${inhY-BIRTH_YEAR}세`;
+  document.getElementById('d-w1-age').textContent=`자녀 ${w1Y-CHILD1_BIRTH}세`;
+  document.getElementById('d-w2-age').textContent=`자녀 ${w2Y-CHILD2_BIRTH}세`;
+
+  const{A,I}=simulate(sev,mon,rate,nps,inf,wr,inhA,inhY,w1A,w1Y,w2A,w2Y);
+
+  const a40=A.find(d=>d.y===2040);
+  const i42=I.find(d=>d.y===2042);
+  const i45=I.find(d=>d.y===2045);
+  const sum=o=>o?o.withdraw+o.pension+o.nps+o.insurance:0;
+  const inc60=Math.round(sum(i42));
+  const inc65=Math.round(sum(i45));
+  const rf2042=Math.pow(1+inf/100,2042-2026);
+  const rf2045=Math.pow(1+inf/100,2045-2026);
+
+  const a40withdraw=a40?Math.round(a40.nom*100*wr/100/12):0;
+  document.getElementById('d-withdraw').textContent=`→ 60세 월 인출: ${a40withdraw}만 (전체×${wr}%)`;
+
+  document.getElementById('m-asset').textContent=(a40?a40.nom:0)+'억';
+  document.getElementById('m-asset-real').textContent=`실질 ${a40?a40.real:0}억`;
+  document.getElementById('m-i60').textContent=inc60+'만';
+  document.getElementById('m-i60-real').textContent=`실질 ${Math.round(inc60/rf2042)}만`;
+  document.getElementById('m-i65').textContent=inc65+'만';
+  document.getElementById('m-i65-real').textContent=`실질 ${Math.round(inc65/rf2045)}만`;
+
+  const rf2040=Math.pow(1+inf/100,2040-2026);
+  const targetNominal=Math.round(500*rf2040);
+  document.getElementById('m-target-inf').textContent=`2040년 명목 목표 ${targetNominal}만`;
+  const gap=inc60-targetNominal;
+  const el=document.getElementById('m-gap');
+  el.textContent=(gap>=0?'+':'')+gap+'만';
+  el.className='val '+(gap>=0?'pos':'neg');
+
+  // 추가 지표
+  const a52=A.find(d=>d.y===2052);
+  document.getElementById('m-postw').textContent=a52?a52.nom+'억':'—';
+
+  const aInh=A.find(d=>d.y===inhY);
+  document.getElementById('m-postinh').textContent=aInh?aInh.nom+'억':'—';
+  document.getElementById('m-postinh-y').textContent=`시점 ${inhY}년 (${inhY-BIRTH_YEAR}세)`;
+
+  const a65=A.find(d=>d.y===2065);
+  document.getElementById('m-85').textContent=a65?a65.nom+'억':'—';
+  const a85El=document.getElementById('m-85');
+  if(a65&&a65.nom<5) a85El.className='val neg';
+  else if(a65&&a65.nom>20) a85El.className='val pos';
+  else a85El.className='val';
+
+  // 인출 지속성 검토 (85세 자산이 60세 자산의 50% 이상이면 안정)
+  if(a40&&a65){
+    const ratio=a65.nom/a40.nom;
+    let burnText='';
+    if(ratio>=1) burnText='✅ 자산 증가';
+    else if(ratio>=0.7) burnText='✅ 안정 유지';
+    else if(ratio>=0.4) burnText='⚠️ 점진 감소';
+    else if(ratio>=0.1) burnText='⚠️ 빠른 감소';
+    else burnText='❌ 고갈 위험';
+    document.getElementById('m-burn').textContent=burnText;
+    document.getElementById('m-burn').className='val '+(ratio>=0.7?'pos':(ratio>=0.4?'':'neg'));
+  }
+
+  renderEvents(inhA,inhY,w1A,w1Y,w2A,w2Y);
+  build(A,I);
+}
+
+['inp-sev','inp-mon','inp-rate','inp-nps','inp-inf','inp-wr','inp-inh','inp-inh-y','inp-w1','inp-w1-y','inp-w2','inp-w2-y'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',update);
+  document.getElementById(id).addEventListener('change',update);
+});
+
+update();
+</script>
+</body>
+</html>
