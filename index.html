@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>은퇴자금 시뮬레이터</title>
+<title>은퇴자금 시뮬레이터 v2</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Segoe UI",sans-serif;background:#FAFAF7;color:#2B2B2B;padding:20px;line-height:1.5}
@@ -61,6 +61,8 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
 .input-section .badge{display:inline-block;font-size:10px;background:#185FA5;color:#FFF;padding:1px 6px;border-radius:3px;font-weight:500}
 .info-banner{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#1E40AF;line-height:1.6}
 .info-banner b{font-weight:600}
+.changelog{background:#FEF9E7;border:1px solid #F9E4A0;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:11.5px;color:#7B5A00;line-height:1.6}
+.changelog b{font-weight:600}
 </style>
 </head>
 <body>
@@ -81,12 +83,20 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
 <div id="content" class="content">
 <div class="container">
   <button class="logout" id="btn-logout">로그아웃</button>
-  <h1>은퇴자금 시뮬레이터</h1>
-  <p class="subtitle">상속 재산 + 자녀 결혼자금 시점 조정 가능</p>
+  <h1>은퇴자금 시뮬레이터 <span style="font-size:14px;color:#7A7670;font-weight:400">v2</span></h1>
+  <p class="subtitle">고정 4% + 인플레 조정 (Trinity Study 방식) · 결혼자금 인플레 반영</p>
+
+  <div class="changelog">
+    <b>📝 v2 변경사항:</b>
+    ① 종신보험/비과세 연금 종료 73세(2053년) 정확 반영
+    ② 학자금 동시 재학 연도 2037~2038년으로 수정
+    ③ <b>고정 4% 룰 + 인플레 조정</b> 방식 도입 (60세 자산 × 4%를 매년 인플레 반영해 인출)
+    ④ 결혼자금 인플레 자동 조정 (입력값은 2026년 기준 명목)
+    ⑤ 자산 고갈 시점 계산 추가
+  </div>
 
   <div class="info-banner">
-    <b>💡 시뮬레이터 소개:</b> 퇴직금·상속재산·자녀 결혼자금을 시점과 함께 입력해 정밀 시뮬레이션. 
-    <b>전체 자산 × 4%</b>로 일괄 인출 (통합 운용 방식).
+    <b>💡 시뮬레이터 소개:</b> 60세 시점 총자산 × 4%를 첫해 인출액으로 고정하고, 매년 인플레율만큼 증액 인출합니다 (Trinity Study). 자산이 마이너스가 되면 인출 중단.
   </div>
 
   <div class="input-section">
@@ -108,9 +118,14 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
         <div class="derived">7.5% 중립</div>
       </div>
       <div class="block">
-        <label>국민연금 (만원/月)</label>
+        <label>본인 국민연금 (만원/月)</label>
         <input type="number" id="inp-nps" value="168" step="10"/>
-        <div class="derived">65세~</div>
+        <div class="derived">검영님 65세~ (2045)</div>
+      </div>
+      <div class="block">
+        <label>사모님 국민연금 (만원/月)</label>
+        <input type="number" id="inp-nps-wife" value="56" step="5"/>
+        <div class="derived">사모님 65세~ (2047)</div>
       </div>
       <div class="block">
         <label>인플레이션율 (%)</label>
@@ -118,9 +133,9 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
         <div class="derived">한국 평균 2~2.6%</div>
       </div>
       <div class="block">
-        <label>인출률 (%)</label>
+        <label>초기 인출률 (%)</label>
         <input type="number" id="inp-wr" value="4.0" step="0.25"/>
-        <div class="derived" id="d-withdraw">→ 60세 월 인출: —만</div>
+        <div class="derived" id="d-withdraw">→ 60세 첫해 월 인출: —만</div>
       </div>
     </div>
   </div>
@@ -131,7 +146,7 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
       <div class="block">
         <label>상속 금액 (만원)</label>
         <input type="number" id="inp-inh" value="0" step="1000"/>
-        <div class="derived">0이면 비활성화</div>
+        <div class="derived">0이면 비활성화 (명목)</div>
       </div>
       <div class="block">
         <label>상속 시점 (연도)</label>
@@ -142,12 +157,12 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
   </div>
 
   <div class="input-section">
-    <p class="sec-title"><span class="badge">-</span> 자녀 결혼자금 지원</p>
+    <p class="sec-title"><span class="badge">-</span> 자녀 결혼자금 지원 <span style="font-size:10px;color:#7A7670;font-weight:400;margin-left:8px">※ 2026년 기준 명목 입력 → 결혼 연도까지 인플레 자동 조정</span></p>
     <div class="grid g4">
       <div class="block">
-        <label>첫째 결혼자금 (만원)</label>
+        <label>첫째 결혼자금 (만원, 2026기준)</label>
         <input type="number" id="inp-w1" value="10000" step="500"/>
-        <div class="derived">평균 7천만 ~ 1.5억</div>
+        <div class="derived" id="d-w1-real">실지급액 —</div>
       </div>
       <div class="block">
         <label>첫째 결혼 연도</label>
@@ -155,9 +170,9 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
         <div class="derived" id="d-w1-age">자녀 — 세</div>
       </div>
       <div class="block">
-        <label>둘째 결혼자금 (만원)</label>
+        <label>둘째 결혼자금 (만원, 2026기준)</label>
         <input type="number" id="inp-w2" value="10000" step="500"/>
-        <div class="derived">평균 7천만 ~ 1.5억</div>
+        <div class="derived" id="d-w2-real">실지급액 —</div>
       </div>
       <div class="block">
         <label>둘째 결혼 연도</label>
@@ -205,12 +220,12 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
     <div class="card">
       <div class="lbl">85세 시점 자산<br>(생존 검토)</div>
       <div class="val" id="m-85">—</div>
-      <div class="sub">자산 고갈 여부 점검</div>
+      <div class="sub" id="m-85-sub">자산 고갈 여부 점검</div>
     </div>
     <div class="card">
-      <div class="lbl">상속 후 평생 인출률</div>
+      <div class="lbl">자산 지속성</div>
       <div class="val" id="m-burn">—</div>
-      <div class="sub">자산 유지 가능성</div>
+      <div class="sub" id="m-burn-sub">—</div>
     </div>
   </div>
 
@@ -229,11 +244,11 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
   <hr class="divider">
 
   <p class="sec-title">💰 은퇴 후 월소득 구성 (만원)</p>
-  <p class="sec-sub">2040~2068년 (60~88세)</p>
+  <p class="sec-sub">2040~2068년 (60~88세) · 고정 4% + 인플레 조정 인출</p>
   <div class="legend">
-    <span><i style="background:#185FA5"></i>투자자산 인출(전체×4%)</span>
+    <span><i style="background:#185FA5"></i>투자자산 인출(고정+인플레)</span>
     <span><i style="background:#1D9E75"></i>비과세 연금</span>
-    <span><i style="background:#BA7517"></i>국민연금</span>
+    <span><i style="background:#BA7517"></i>국민연금(본인+사모님)</span>
     <span><i style="background:#7F77DD"></i>종신보험(60~73세)</span>
     <span><i style="background:#C25B7E"></i>일시금(月환산)</span>
   </div>
@@ -246,11 +261,12 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
   <p class="sec-title">🎁 주요 이벤트 타임라인</p>
   <div class="event-list" id="event-list"></div>
   <p class="note">
-    * <b>통합 운용 방식</b>: 퇴직금·상속재산 모두 포폴에 편입 후 <b>전체 자산 × 4%</b>로 일괄 인출.<br>
-    * <b>결혼자금</b>: 입력 연도에 포폴에서 일시 차감 → 이후 자산 인출액 자동 감소.<br>
-    * <b>상속재산</b>: 입력 연도에 포폴에 편입 → 이후 자산 인출액 자동 증가.<br>
-    * 종신보험 KB Plus: 연 250만 × 60~73세 14년만 별도. 비과세 연금 1,000만/년 (60~73세) → 600만/년 (74세~).<br>
-    * 학자금 세금: 매년 인플레 반영(2025년 등록금 710만 기준). 2035~2038 비과세 연금 1,000만/년 상쇄.
+    * <b>고정 4% + 인플레 조정 (Trinity Study)</b>: 60세 시점 총자산 × 4%를 첫해 인출액으로 고정 → 이후 매년 인플레율(%)만큼 증액. 자산 잔액과 무관하게 정해진 금액 인출.<br>
+    * <b>결혼자금</b>: 입력값은 2026년 기준 명목. 결혼 연도까지 인플레 자동 조정 후 차감.<br>
+    * <b>상속재산</b>: 입력 연도에 포폴에 편입 (명목값 그대로).<br>
+    * <b>종신보험 KB Plus</b>: 60~73세(2040~2053) 14년 한정. 비과세 연금 1,000만/년 (60~73세) → 600만/년 (74세~).<br>
+    * <b>학자금 세금</b>: 2035~2038 본인 부담 9.62M/연 · 2037~2038은 두 자녀 동시 재학으로 부담 2배. 2035~2038년 비과세 연금 1,000만/년 상쇄.<br>
+    * <b>국민연금</b>: 검영님 168만/月 (2045~) + 사모님 임의가입 25년 → 56만/月 (2047~).
   </p>
 </div>
 </div>
@@ -260,8 +276,6 @@ h1{font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-0.02em}
 // ═══════════════════════════════════════════════════════
 // 🔐 암호 보호 (SHA-256 해시 비교)
 // ═══════════════════════════════════════════════════════
-// 기본 암호: gemma2040
-// 변경 방법은 README 또는 페이지 하단 안내 참고
 const PWD_HASH = 'd80db4fba8a69e24c389fa7a6f12b6ada7726173f57f44864ac22f4ab66291f2';
 
 async function sha256(text){
@@ -289,7 +303,6 @@ async function checkPwd(){
 function unlock(){
   document.getElementById('lock').style.display = 'none';
   document.getElementById('content').classList.add('unlocked');
-  // 차트가 hidden 상태에서 그려지면 크기가 0이라 다시 그림
   if(typeof update === 'function') update();
 }
 
@@ -306,7 +319,7 @@ if(sessionStorage.getItem('sim-auth') === '1') unlock();
 else document.getElementById('pwd').focus();
 
 // ═══════════════════════════════════════════════════════
-// 📊 시뮬레이터 로직
+// 📊 시뮬레이터 로직 v2
 // ═══════════════════════════════════════════════════════
 const INIT={p1:77057424,p2:10111812,p3:39817466};
 const ANNUAL_P2=3000000;
@@ -315,6 +328,7 @@ const ISA_REBATE_2028=396000;
 const BIRTH_YEAR=1980;
 const CHILD1_BIRTH=2016;
 const CHILD2_BIRTH=2018;
+const RETIRE_YEAR=2040; // 검영님 60세
 
 const LUMP={
   2035:9000000,
@@ -325,14 +339,26 @@ const LUMP={
   2068:12000000
 };
 
-function simulate(sev,mon,rate,nps,inf,wr,inhA,inhY,w1A,w1Y,w2A,w2Y){
+// ───────────────────────────────────────────────────
+// 핵심: 고정 4% + 인플레 조정 (Trinity Study) 방식
+// 1) 2040년 말 총자산을 산출
+// 2) 그 × 4% = 첫해(2040년) 연 인출액 고정
+// 3) 이후 매년 인플레율만큼 증액 인출
+// ───────────────────────────────────────────────────
+function simulate(sev,mon,rate,nps,npsWife,inf,wr,inhA,inhY,w1A,w1Y,w2A,w2Y){
   const mr=Math.pow(1+rate/100,1/12)-1;
   const ir=inf/100;
   let p1=INIT.p1,p2=INIT.p2,p3=INIT.p3;
   const A=[],I=[];
+  let baseWithdraw=0; // 60세 첫해 연 인출액 (고정)
+  let depleteYear=null; // 자산 고갈 시점
 
+  // ─── 1단계: 2026~2040년 (적립 + 이벤트) ───
   for(let y=2026;y<=2068;y++){
+    // 적립기 P2 IRP 연 1회 입금
     if(y<=2040) p2+=ANNUAL_P2;
+    
+    // 월 복리 계산
     for(let m=0;m<12;m++){
       if(y<=2040){
         p1=p1*(1+mr)+mon*10000;
@@ -343,39 +369,102 @@ function simulate(sev,mon,rate,nps,inf,wr,inhA,inhY,w1A,w1Y,w2A,w2Y){
       }
       p3=p3*(1+mr);
     }
+    
+    // ISA 리베이트
     if(y===2028) p1+=ISA_REBATE_2028;
-    if(y>=2033&&y<=2038){
+    
+    // 학자금 세금 부담
+    // 첫째: 2035~2038 재학 / 둘째: 2037~2040 재학 → 동시재학: 2037~2038
+    if(y>=2035&&y<=2040){
       const inflated=BASE_TUITION*Math.pow(1+ir,y-2025);
-      let students=1;
-      if(y===2034||y===2035||y===2036) students=2;
+      let students=0;
+      if(y>=2035&&y<=2038) students+=1; // 첫째
+      if(y>=2037&&y<=2040) students+=1; // 둘째
       const tax=inflated*students*0.385;
+      // 비과세 연금 상쇄: 2035년은 부분 + 2036~ 풀
       let offset=0;
       if(y===2035) offset=1000000*(2/12);
       else if(y>=2036) offset=1000000;
       p1-=Math.max(0,tax-offset);
     }
-    if(y===2040) p1+=sev*10000;
-    if(y===w1Y&&w1A>0) p1-=w1A*10000;
-    if(y===w2Y&&w2A>0) p1-=w2A*10000;
+    
+    // 퇴직금 편입 (2040년)
+    if(y===RETIRE_YEAR) p1+=sev*10000;
+    
+    // 결혼자금 인플레 조정 차감
+    if(y===w1Y&&w1A>0){
+      const inflatedW1=w1A*10000*Math.pow(1+ir,w1Y-2026);
+      p1-=inflatedW1;
+    }
+    if(y===w2Y&&w2A>0){
+      const inflatedW2=w2A*10000*Math.pow(1+ir,w2Y-2026);
+      p1-=inflatedW2;
+    }
+    
+    // 상속 편입 (명목값)
     if(y===inhY&&inhA>0) p1+=inhA*10000;
-
-    const total=p1+p2+p3;
+    
+    // ─── 2단계: 60세부터 고정 4% + 인플레 조정 인출 ───
+    if(y===RETIRE_YEAR){
+      // 60세 말 총자산 × wr% = 첫해 연 인출액
+      const totalAtRetire=p1+p2+p3;
+      baseWithdraw=totalAtRetire*wr/100;
+    }
+    
+    if(y>RETIRE_YEAR && baseWithdraw>0){
+      // 매년 인플레 조정된 인출액
+      const yearsAfterRetire=y-RETIRE_YEAR;
+      const annualWithdraw=baseWithdraw*Math.pow(1+ir,yearsAfterRetire);
+      
+      // 자산에서 인출 (p1 우선, 모자라면 p2, p3 순)
+      let remaining=annualWithdraw;
+      if(p1>=remaining){p1-=remaining;remaining=0;}
+      else{remaining-=p1;p1=0;}
+      if(remaining>0){
+        if(p2>=remaining){p2-=remaining;remaining=0;}
+        else{remaining-=p2;p2=0;}
+      }
+      if(remaining>0){
+        if(p3>=remaining){p3-=remaining;remaining=0;}
+        else{remaining-=p3;p3=0;}
+      }
+      if(remaining>0 && depleteYear===null){
+        depleteYear=y;
+      }
+    }
+    
+    const total=Math.max(0,p1+p2+p3);
     const yrFrom2026=y-2026;
     const realFactor=Math.pow(1+ir,yrFrom2026);
     A.push({y,nom:Math.round(total/1e7)/10,real:Math.round(total/realFactor/1e7)/10});
 
-    if(y>=2040){
-      const withdraw=Math.round(total*wr/100/12/10000);
-      const insurance=y<=2073?Math.round(250/12):0;
-      const pension=y<=2073?Math.round(1000/12):Math.round(600/12);
-      const npsVal=y>=2045?nps:0;
+    // 월소득 계산
+    if(y>=RETIRE_YEAR){
+      let withdrawMonthly=0;
+      if(y===RETIRE_YEAR){
+        withdrawMonthly=Math.round(baseWithdraw/12/10000);
+      } else {
+        const yearsAfterRetire=y-RETIRE_YEAR;
+        const annualWithdraw=baseWithdraw*Math.pow(1+ir,yearsAfterRetire);
+        // 자산 고갈 후엔 0
+        if(depleteYear!==null && y>=depleteYear) withdrawMonthly=0;
+        else withdrawMonthly=Math.round(annualWithdraw/12/10000);
+      }
+      // 종신보험: 60~73세 (2040~2053)만
+      const insurance=(y>=2040 && y<=2053)?Math.round(250/12):0;
+      // 비과세 연금: 60~73세는 1000만/년, 74세~ 600만/년
+      const pension=(y>=2040 && y<=2053)?Math.round(1000/12):Math.round(600/12);
+      // 국민연금: 본인 65세~ (2045), 사모님 67세~ (2047)
+      const npsSelf=y>=2045?nps:0;
+      const npsW=y>=2047?npsWife:0;
+      const npsTotal=npsSelf+npsW;
       const lumpMonthly=LUMP[y]?Math.round(LUMP[y]/12/10000):0;
-      I.push({y,withdraw,pension,nps:npsVal,insurance,lump:lumpMonthly});
+      I.push({y,withdraw:withdrawMonthly,pension,nps:npsTotal,insurance,lump:lumpMonthly});
     } else {
       I.push({y,withdraw:0,pension:0,nps:0,insurance:0,lump:0});
     }
   }
-  return{A,I};
+  return{A,I,baseWithdraw,depleteYear};
 }
 
 let cA=null,cI=null;
@@ -418,20 +507,26 @@ function build(A,I){
   });
 }
 
-function renderEvents(inhA,inhY,w1A,w1Y,w2A,w2Y){
+function renderEvents(inhA,inhY,w1A,w1Y,w2A,w2Y,inf){
+  const ir=inf/100;
+  const w1Inflated=w1A>0?Math.round(w1A*Math.pow(1+ir,w1Y-2026)):0;
+  const w2Inflated=w2A>0?Math.round(w2A*Math.pow(1+ir,w2Y-2026)):0;
   const events=[
     {y:2028,kind:'income',text:`ISA 1차 만기 풍차 환급 <b>39.6만</b>`},
     {y:2035,age:55,kind:'income',text:`비과세연금 개시 일시 <b>900만</b><br>(여행 600 + 축하 300)`},
-    {y:2040,age:60,kind:'income',text:`퇴직금 <b>${(parseInt(document.getElementById('inp-sev').value)/10000).toFixed(1)}억</b> 편입`},
+    {y:2040,age:60,kind:'income',text:`퇴직금 <b>${(parseInt(document.getElementById('inp-sev').value)/10000).toFixed(1)}억</b> 편입<br>은퇴 시작·고정 4% 룰 적용`},
+    {y:2045,age:65,kind:'income',text:`<b>본인 국민연금</b> 개시 (월 168만)`},
+    {y:2047,age:67,kind:'income',text:`<b>사모님 국민연금</b> 개시 (월 56만)`},
     {y:2050,age:70,kind:'income',text:`장수축하금 480 + 보험 만기 500<br>= <b>980만</b>`},
     {y:2051,age:71,kind:'income',text:`90년대 보험 만기 잔여 <b>500만</b>`},
+    {y:2053,age:73,kind:'income',text:`종신보험·비과세연금 1차 종료<br>비과세 1000→600만/년`},
     {y:2057,age:77,kind:'income',text:`장수 720 + 건강축하 900<br>= <b>1,620만</b>`},
     {y:2060,age:80,kind:'income',text:`장수축하금 <b>960만</b>`},
     {y:2068,age:88,kind:'income',text:`장수축하금 <b>1,200만</b>`}
   ];
   if(inhA>0) events.push({y:inhY,age:inhY-BIRTH_YEAR,kind:'income',text:`<b>상속 재산</b> ${(inhA/10000).toFixed(1)}억 편입`});
-  if(w1A>0) events.push({y:w1Y,age:w1Y-CHILD1_BIRTH,kind:'outgo',text:`<b>첫째 결혼자금</b> ${(w1A/10000).toFixed(1)}억 지원<br>(자녀 ${w1Y-CHILD1_BIRTH}세)`});
-  if(w2A>0) events.push({y:w2Y,age:w2Y-CHILD2_BIRTH,kind:'outgo',text:`<b>둘째 결혼자금</b> ${(w2A/10000).toFixed(1)}억 지원<br>(자녀 ${w2Y-CHILD2_BIRTH}세)`});
+  if(w1A>0) events.push({y:w1Y,age:w1Y-CHILD1_BIRTH,kind:'outgo',text:`<b>첫째 결혼자금</b> ${(w1Inflated/10000).toFixed(2)}억 지원<br>(2026기준 ${(w1A/10000).toFixed(1)}억, 자녀 ${w1Y-CHILD1_BIRTH}세)`});
+  if(w2A>0) events.push({y:w2Y,age:w2Y-CHILD2_BIRTH,kind:'outgo',text:`<b>둘째 결혼자금</b> ${(w2Inflated/10000).toFixed(2)}억 지원<br>(2026기준 ${(w2A/10000).toFixed(1)}억, 자녀 ${w2Y-CHILD2_BIRTH}세)`});
   events.sort((a,b)=>a.y-b.y);
   const html=events.map(e=>{
     const ageStr=e.age?` (${e.age}세)`:'';
@@ -441,10 +536,11 @@ function renderEvents(inhA,inhY,w1A,w1Y,w2A,w2Y){
 }
 
 function update(){
-  const sev=parseFloat(document.getElementById('inp-sev').value)||33000;
+  const sev=parseFloat(document.getElementById('inp-sev').value)||35000;
   const mon=parseFloat(document.getElementById('inp-mon').value)||142;
   const rate=parseFloat(document.getElementById('inp-rate').value)||7.5;
   const nps=parseFloat(document.getElementById('inp-nps').value)||168;
+  const npsWife=parseFloat(document.getElementById('inp-nps-wife').value)||56;
   const inf=parseFloat(document.getElementById('inp-inf').value)||2.2;
   const wr=parseFloat(document.getElementById('inp-wr').value)||4.0;
   const inhA=parseFloat(document.getElementById('inp-inh').value)||0;
@@ -453,12 +549,19 @@ function update(){
   const w1Y=parseInt(document.getElementById('inp-w1-y').value)||2049;
   const w2A=parseFloat(document.getElementById('inp-w2').value)||0;
   const w2Y=parseInt(document.getElementById('inp-w2-y').value)||2051;
+  const ir=inf/100;
 
+  // 결혼자금 인플레 조정 표시
+  const w1Inf=Math.round(w1A*Math.pow(1+ir,w1Y-2026));
+  const w2Inf=Math.round(w2A*Math.pow(1+ir,w2Y-2026));
+  document.getElementById('d-w1-real').textContent=`실지급액 ${w1Inf}만 (${w1Y}년)`;
+  document.getElementById('d-w2-real').textContent=`실지급액 ${w2Inf}만 (${w2Y}년)`;
   document.getElementById('d-inh-age').textContent=`검영님 ${inhY-BIRTH_YEAR}세`;
   document.getElementById('d-w1-age').textContent=`자녀 ${w1Y-CHILD1_BIRTH}세`;
   document.getElementById('d-w2-age').textContent=`자녀 ${w2Y-CHILD2_BIRTH}세`;
 
-  const{A,I}=simulate(sev,mon,rate,nps,inf,wr,inhA,inhY,w1A,w1Y,w2A,w2Y);
+  const{A,I,baseWithdraw,depleteYear}=simulate(sev,mon,rate,nps,npsWife,inf,wr,inhA,inhY,w1A,w1Y,w2A,w2Y);
+  
   const a40=A.find(d=>d.y===2040);
   const i42=I.find(d=>d.y===2042);
   const i45=I.find(d=>d.y===2045);
@@ -467,14 +570,18 @@ function update(){
   const inc65=Math.round(sum(i45));
   const rf2042=Math.pow(1+inf/100,2042-2026);
   const rf2045=Math.pow(1+inf/100,2045-2026);
-  const a40withdraw=a40?Math.round(a40.nom*100*wr/100/12):0;
-  document.getElementById('d-withdraw').textContent=`→ 60세 월 인출: ${a40withdraw}만 (전체×${wr}%)`;
+  
+  // 60세 첫해 월 인출액 (고정 4% 기준)
+  const firstYearMonthly=Math.round(baseWithdraw/12/10000);
+  document.getElementById('d-withdraw').textContent=`→ 60세 첫해 월 인출: ${firstYearMonthly}만 (고정)`;
+  
   document.getElementById('m-asset').textContent=(a40?a40.nom:0)+'억';
   document.getElementById('m-asset-real').textContent=`실질 ${a40?a40.real:0}억`;
   document.getElementById('m-i60').textContent=inc60+'만';
   document.getElementById('m-i60-real').textContent=`실질 ${Math.round(inc60/rf2042)}만`;
   document.getElementById('m-i65').textContent=inc65+'만';
   document.getElementById('m-i65-real').textContent=`실질 ${Math.round(inc65/rf2045)}만`;
+  
   const rf2040=Math.pow(1+inf/100,2040-2026);
   const targetNominal=Math.round(500*rf2040);
   document.getElementById('m-target-inf').textContent=`2040년 명목 목표 ${targetNominal}만`;
@@ -482,33 +589,57 @@ function update(){
   const el=document.getElementById('m-gap');
   el.textContent=(gap>=0?'+':'')+gap+'만';
   el.className='val '+(gap>=0?'pos':'neg');
+  
   const a52=A.find(d=>d.y===2052);
   document.getElementById('m-postw').textContent=a52?a52.nom+'억':'—';
   const aInh=A.find(d=>d.y===inhY);
   document.getElementById('m-postinh').textContent=aInh?aInh.nom+'억':'—';
   document.getElementById('m-postinh-y').textContent=`시점 ${inhY}년 (${inhY-BIRTH_YEAR}세)`;
-  const a65=A.find(d=>d.y===2065);
-  document.getElementById('m-85').textContent=a65?a65.nom+'억':'—';
+  
+  // 85세 시점 자산 (2065년)
+  const a85=A.find(d=>d.y===2065);
+  document.getElementById('m-85').textContent=a85?a85.nom+'억':'—';
   const a85El=document.getElementById('m-85');
-  if(a65&&a65.nom<5) a85El.className='val neg';
-  else if(a65&&a65.nom>20) a85El.className='val pos';
+  if(a85&&a85.nom<5) a85El.className='val neg';
+  else if(a85&&a85.nom>20) a85El.className='val pos';
   else a85El.className='val';
-  if(a40&&a65){
-    const ratio=a65.nom/a40.nom;
-    let burnText='';
-    if(ratio>=1) burnText='✅ 자산 증가';
-    else if(ratio>=0.7) burnText='✅ 안정 유지';
-    else if(ratio>=0.4) burnText='⚠️ 점진 감소';
-    else if(ratio>=0.1) burnText='⚠️ 빠른 감소';
-    else burnText='❌ 고갈 위험';
-    document.getElementById('m-burn').textContent=burnText;
-    document.getElementById('m-burn').className='val '+(ratio>=0.7?'pos':(ratio>=0.4?'':'neg'));
+  
+  // 고갈 시점 표시
+  if(depleteYear){
+    document.getElementById('m-85-sub').textContent=`⚠️ ${depleteYear}년(${depleteYear-BIRTH_YEAR}세) 고갈`;
+  } else {
+    document.getElementById('m-85-sub').textContent=`자산 88세까지 유지 ✅`;
   }
-  renderEvents(inhA,inhY,w1A,w1Y,w2A,w2Y);
+  
+  // 자산 지속성
+  if(a40&&a85){
+    let burnText='',burnSub='';
+    if(depleteYear){
+      burnText='❌ 고갈';
+      burnSub=`${depleteYear}년 소진`;
+    } else {
+      const ratio=a85.nom/a40.nom;
+      if(ratio>=1){burnText='✅ 자산 증가';burnSub=`85세에 60세 대비 ${Math.round(ratio*100)}%`;}
+      else if(ratio>=0.7){burnText='✅ 안정 유지';burnSub=`85세에 60세 대비 ${Math.round(ratio*100)}%`;}
+      else if(ratio>=0.4){burnText='⚠️ 점진 감소';burnSub=`85세에 60세 대비 ${Math.round(ratio*100)}%`;}
+      else if(ratio>=0.1){burnText='⚠️ 빠른 감소';burnSub=`85세에 60세 대비 ${Math.round(ratio*100)}%`;}
+      else {burnText='❌ 고갈 위험';burnSub=`85세에 60세 대비 ${Math.round(ratio*100)}%`;}
+    }
+    document.getElementById('m-burn').textContent=burnText;
+    document.getElementById('m-burn-sub').textContent=burnSub;
+    const burnEl=document.getElementById('m-burn');
+    if(depleteYear) burnEl.className='val neg';
+    else {
+      const ratio=a85.nom/a40.nom;
+      burnEl.className='val '+(ratio>=0.7?'pos':(ratio>=0.4?'':'neg'));
+    }
+  }
+  
+  renderEvents(inhA,inhY,w1A,w1Y,w2A,w2Y,inf);
   build(A,I);
 }
 
-['inp-sev','inp-mon','inp-rate','inp-nps','inp-inf','inp-wr','inp-inh','inp-inh-y','inp-w1','inp-w1-y','inp-w2','inp-w2-y'].forEach(id=>{
+['inp-sev','inp-mon','inp-rate','inp-nps','inp-nps-wife','inp-inf','inp-wr','inp-inh','inp-inh-y','inp-w1','inp-w1-y','inp-w2','inp-w2-y'].forEach(id=>{
   document.getElementById(id).addEventListener('input',update);
   document.getElementById(id).addEventListener('change',update);
 });
