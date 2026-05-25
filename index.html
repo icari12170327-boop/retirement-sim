@@ -252,6 +252,9 @@ canvas{width:100%;height:100%;cursor:crosshair}
       <label>연소자 연령 (가입시)</label>
       <input type="number" id="inp-hf-age" value="0"/>
       <button class="btn-sm" onclick="autoHfAge()">📐 본인/배우자 중 어린쪽 자동입력</button>
+      <div class="preset-warning hide" id="hf-warn">
+        ⚠️ 주택가격과 연소자 연령을 입력해야 주택연금이 반영됩니다 (현재 미입력 → 미반영).
+      </div>
       <div class="hf-info">
         한국주택금융공사 2026.3.1 종신정액형 일반주택 기준.<br>
         가입시점 월지급금 확정 후 <b>평생 정액 고정</b> (인플레 미보정).<br>
@@ -532,7 +535,15 @@ function onCrashChange(){
   }
 }
 
-function onHfChange(){ /* placeholder */ }
+function onHfChange(){ updateHfWarn(); }
+
+function updateHfWarn(){
+  const on = document.getElementById('inp-hf').checked;
+  const price = parseFloat(document.getElementById('inp-hf-price').value);
+  const age = parseFloat(document.getElementById('inp-hf-age').value);
+  const incomplete = on && (!(price > 0) || !(age > 0));
+  document.getElementById('hf-warn').classList.toggle('hide', !incomplete);
+}
 
 function autoHfPrice(){
   const re = parseFloat(document.getElementById('inp-realestate').value);
@@ -540,6 +551,7 @@ function autoHfPrice(){
   const hfYear = parseInt(document.getElementById('inp-hf-year').value);
   const price = re * Math.pow(1+infl, hfYear-2026);
   document.getElementById('inp-hf-price').value = Math.round(price);
+  updateHfWarn();
 }
 function autoHfAge(){
   const myBirth = parseInt(document.getElementById('inp-birth').value);
@@ -548,6 +560,7 @@ function autoHfAge(){
   const myAge = hfYear - myBirth;
   const wifeAge = hfYear - wifeBirth;
   document.getElementById('inp-hf-age').value = Math.min(myAge, wifeAge);
+  updateHfWarn();
 }
 
 function getInputs(){
@@ -709,7 +722,9 @@ function simulateCore(inp, opts={}){
     }
 
     // 5. 주택연금 가입 - 월지급금 확정 (가입연도 1회만)
-    if(inp.useHf && y === inp.hfYear && hfMonthly === null){
+    // 가격/연령이 미입력(0 이하)이면 가입하지 않음 (테이블 최저값으로 인한 허수 수입 방지)
+    if(inp.useHf && y === inp.hfYear && hfMonthly === null
+       && inp.hfPrice > 0 && inp.hfAge > 0){
       hfMonthly = getHfMonthly(inp.hfAge, inp.hfPrice);
     }
 
@@ -1260,6 +1275,7 @@ onPresetChange();
 onFxChange();
 onCrashChange();
 onBirthChange();
+onHfChange();
 </script>
 </body>
 </html>
