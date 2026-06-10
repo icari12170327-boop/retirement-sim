@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>은퇴자금 시뮬레이터 v3.3</title>
+<title>은퇴자금 시뮬레이터 v3.4</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,'Segoe UI',sans-serif;background:#f5f7fa;color:#222;padding:20px;line-height:1.5}
@@ -85,8 +85,8 @@ canvas{width:100%;height:100%;cursor:crosshair}
 </div>
 
 <div class="container" id="main" style="display:none">
-  <h1>은퇴자금 시뮬레이터 v3.3</h1>
-  <div class="subtitle">원화 기준 · 환헷지 토글 · 역사적 위기 시나리오 6종 · Trinity 4% · Bond Tent · Monte Carlo · 주택연금 통합</div>
+  <h1>은퇴자금 시뮬레이터 v3.4</h1>
+  <div class="subtitle">원화 기준 · 환헷지 토글 · 역사적 위기 시나리오 6종 · Trinity 4% · Bond Tent · Monte Carlo · 주택연금 · 세금/건보료 · 입력값 자동저장(이 브라우저에만 저장됨)</div>
 
   <div class="grid">
     <div class="card" style="border:2px solid #4a6cf7">
@@ -105,17 +105,17 @@ canvas{width:100%;height:100%;cursor:crosshair}
     <div class="card">
       <h3>💰 현재 자산 (만원)</h3>
       <label>투자 포트폴리오</label>
-      <input type="number" id="inp-portfolio" value="12700" step="500"/>
+      <input type="number" id="inp-portfolio" value="10000" step="500"/>
       <label>현금/예금</label>
       <input type="number" id="inp-cash" value="0" step="500"/>
       <label>부동산 (참고)</label>
-      <input type="number" id="inp-realestate" value="80000" step="1000"/>
+      <input type="number" id="inp-realestate" value="50000" step="1000"/>
     </div>
 
     <div class="card">
       <h3>💵 연간 저축 (만원)</h3>
       <label>연 저축액 (2026 기준)</label>
-      <input type="number" id="inp-save" value="2000" step="100"/>
+      <input type="number" id="inp-save" value="1200" step="100"/>
       <label>저축 증가율 (%/년)</label>
       <input type="number" id="inp-savegrow" value="0" step="0.5"/>
     </div>
@@ -123,7 +123,7 @@ canvas{width:100%;height:100%;cursor:crosshair}
     <div class="card" style="border:2px solid #8b5cf6;background:#faf5ff">
       <h3>💼 퇴직금 (일시금)</h3>
       <label>예상 퇴직금 (만원, 명목)</label>
-      <input type="number" id="inp-severance" value="35000" step="1000"/>
+      <input type="number" id="inp-severance" value="20000" step="1000"/>
       <label>수령 연도</label>
       <input type="number" id="inp-severance-year" value="2040"/>
       <small>연말 수령 가정 · 4% 룰 기준자산에 포함</small>
@@ -137,6 +137,11 @@ canvas{width:100%;height:100%;cursor:crosshair}
       <input type="number" id="inp-stdev" value="13.5" step="0.5"/>
       <label>인플레이션 (%/년)</label>
       <input type="number" id="inp-infl" value="2.2" step="0.1"/>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-weight:600">
+        <input type="checkbox" id="inp-voldrag" style="width:auto"/>
+        변동성 드래그 보정 (μ−σ²/2)
+      </label>
+      <small>체크 시 단일 시뮬이 기하평균 근사로 계산되어 MC 중앙값과 비교 가능. 미체크 시 산술평균 경로(낙관적).</small>
       <div class="preset-warning hide" id="preset-warn">
         ⚠️ 프리셋 사용 중 - 기본 수익률/표준편차는 무시됨
       </div>
@@ -180,6 +185,9 @@ canvas{width:100%;height:100%;cursor:crosshair}
         🔒 환헷지 적용 (KODEX H시리즈 등)
       </label>
       <small id="fx-info" style="margin-top:4px;color:#0284c7;font-weight:600">✅ 환노출 (원화 환산, 기본)</small>
+      <label>환헷지 비용 (%/년)</label>
+      <input type="number" id="inp-fx-cost" value="1.75" step="0.25"/>
+      <small>헷지 ON 시 전 구간 수익률에서 차감 (한미 금리차+롤오버 비용)</small>
 
       <div class="custom-fields" id="custom-fields">
         <label>적립기 % / 표준편차 % (~2039)</label>
@@ -222,20 +230,34 @@ canvas{width:100%;height:100%;cursor:crosshair}
 
     <div class="card" style="border:2px solid #0284c7;background:#f0f9ff">
       <h3>🏛️ 국민연금 (2026 현재가치, 만원/월)</h3>
-      <label>본인 NPS (65세~)</label>
-      <input type="number" id="inp-nps" value="168" step="5"/>
-      <label>사모님 NPS (65세~)</label>
-      <input type="number" id="inp-nps-wife" value="31" step="5"/>
-      <small>✅ 매년 인플레만큼 자동 증액 (국민연금법 제51조)</small>
+      <label>본인 NPS (만원/월)</label>
+      <input type="number" id="inp-nps" value="100" step="5"/>
+      <label>배우자 NPS (만원/월)</label>
+      <input type="number" id="inp-nps-wife" value="50" step="5"/>
+      <label>수급개시 연령 (본인·배우자 공통)</label>
+      <input type="number" id="inp-nps-age" value="65" min="60" max="70"/>
+      <small>✅ 매년 인플레만큼 자동 증액 (국민연금법 제51조) · 조기(60세, -30%)/연기(70세, +36%) 수령액은 직접 보정해 입력</small>
     </div>
 
     <div class="card">
       <h3>💎 종신연금 (명목 고정, 만원/년)</h3>
-      <label>비과세 연금 (60세~ 평생)</label>
-      <input type="number" id="inp-taxfree" value="1000" step="50"/>
+      <label>비과세 연금 (평생)</label>
+      <input type="number" id="inp-taxfree" value="0" step="50"/>
+      <label>비과세 연금 개시 연령</label>
+      <input type="number" id="inp-taxfree-age" value="60"/>
       <label>KB 종신보험 (60~73세)</label>
-      <input type="number" id="inp-kb" value="250" step="50"/>
-      <small>⚠️ 명목 고정형 - 시간 경과에 따라 실질가치 감소</small>
+      <input type="number" id="inp-kb" value="0" step="50"/>
+      <small>⚠️ 명목 고정형 - 시간 경과에 따라 실질가치 감소<br>✅ 개시 연령 기준 지급 — 은퇴 전 개시되면 적립기 수입으로 반영</small>
+    </div>
+
+    <div class="card" style="border:2px solid #64748b;background:#f8fafc">
+      <h3>💸 은퇴 후 세금·건강보험</h3>
+      <label>인출 실효세율 (%)</label>
+      <input type="number" id="inp-tax-rate" value="5" step="0.5"/>
+      <small>4% 인출분에 적용 (연금소득세·종합과세 평균 부담률, 0이면 미반영)</small>
+      <label>지역건보료 (만원/월, 2026 기준)</label>
+      <input type="number" id="inp-health" value="25" step="5"/>
+      <small>은퇴 후 지역가입자 보험료 · 매년 인플레 연동 (0이면 미반영)</small>
     </div>
 
     <div class="card" style="border:2px solid #ea580c;background:#fff7ed">
@@ -264,8 +286,8 @@ canvas{width:100%;height:100%;cursor:crosshair}
 
     <div class="card">
       <h3>🎓 자녀 학자금 (만원/년/명)</h3>
-      <label>1인당 연 학자금</label>
-      <input type="number" id="inp-tuition" value="1500" step="100"/>
+      <label>1인당 연 학자금 (2026 기준, 인플레 연동)</label>
+      <input type="number" id="inp-tuition" value="1000" step="100"/>
       <label>첫째 시작/종료 연도</label>
       <input type="number" id="inp-tuition1-start" value="2035"/>
       <input type="number" id="inp-tuition1-end" value="2038"/>
@@ -276,8 +298,8 @@ canvas{width:100%;height:100%;cursor:crosshair}
 
     <div class="card">
       <h3>👨‍👩‍👧‍👦 자녀 결혼자금 (만원)</h3>
-      <label>자녀 1인당 결혼자금 (2026 기준)</label>
-      <input type="number" id="inp-marriage" value="20000" step="1000"/>
+      <label>자녀 1인당 결혼자금 (2026 기준, 인플레 연동)</label>
+      <input type="number" id="inp-marriage" value="10000" step="1000"/>
       <label>첫째 결혼 연도</label>
       <input type="number" id="inp-m1" value="2046"/>
       <label>둘째 결혼 연도</label>
@@ -287,9 +309,9 @@ canvas{width:100%;height:100%;cursor:crosshair}
     <div class="card" style="border:2px solid #10b981;background:#f0fdf4">
       <h3>🏛️ 상속재산 (일시금)</h3>
       <label>예상 상속재산 (만원, 명목)</label>
-      <input type="number" id="inp-inherit" value="50000" step="5000"/>
+      <input type="number" id="inp-inherit" value="0" step="5000"/>
       <label>예상 수령 연도</label>
-      <input type="number" id="inp-inherit-year" value="2035"/>
+      <input type="number" id="inp-inherit-year" value="2040"/>
     </div>
 
     <div class="card" style="border:2px solid #dc2626;background:#fef2f2">
@@ -322,9 +344,18 @@ canvas{width:100%;height:100%;cursor:crosshair}
     <button class="btn" onclick="runSingle()">▶ 단일 시뮬레이션</button>
     <button class="btn btn-mc" onclick="runMC()">🎲 Monte Carlo</button>
     <button class="btn btn-crash" onclick="runCrashSim()">📉 위기 시나리오 테스트</button>
+    <button class="btn" style="background:#059669" onclick="exportInputs()">💾 JSON 내보내기</button>
+    <button class="btn" style="background:#059669" onclick="document.getElementById('import-file').click()">📂 JSON 가져오기</button>
+    <button class="btn" style="background:#6b7280" onclick="resetInputs()">♻️ 입력 초기화</button>
+    <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importInputs(event)"/>
   </div>
 
   <div class="results" id="results" style="display:none">
+    <div style="margin-bottom:12px">
+      <button class="btn-sm" onclick="saveBaseline()">📌 현재 결과를 기준선으로</button>
+      <button class="btn-sm" style="background:#6b7280" onclick="clearBaseline()">기준선 해제</button>
+      <span id="baseline-info" style="font-size:11px;color:#666;margin-left:8px"></span>
+    </div>
     <div class="result-grid" id="result-cards"></div>
     <div class="chart-wrap"><canvas id="chart"></canvas><div class="tooltip" id="tooltip-asset"></div></div>
     
@@ -334,8 +365,9 @@ canvas{width:100%;height:100%;cursor:crosshair}
       <div class="cashflow-note">
         ※ 표시 금액은 인플레이션을 차감한 <b>2026년 실질가치</b>로 환산됨 (구매력 기준).<br>
         ※ <b>4% 인출</b>: 은퇴년 자산(퇴직금 포함)의 4%를 첫해로 고정 후 매년 인플레 조정.<br>
-        ※ <b>국민연금</b>: 매년 인플레 자동 연동 → 실질가치 유지.<br>
-        ※ <b>비과세연금 + KB보험 + 주택연금</b>: 명목 고정 → 시간 갈수록 실질가치 감소.
+        ※ <b>국민연금</b>: 매년 인플레 자동 연동 → 실질가치 유지. 개시 연령은 입력값 기준.<br>
+        ※ <b>비과세연금 + KB보험 + 주택연금</b>: 명목 고정 → 시간 갈수록 실질가치 감소. 개시 연령이 은퇴보다 빠르면 은퇴 전부터 적립.<br>
+        ※ <b>세금·건보</b>: 인출 실효세율 + 지역건보료(인플레 연동) 차감. <b>총 월수령은 세후 기준.</b>
       </div>
       <div class="stacked-chart-wrap"><canvas id="stacked-chart"></canvas><div class="tooltip" id="tooltip-stack"></div></div>
     </div>
@@ -346,12 +378,14 @@ canvas{width:100%;height:100%;cursor:crosshair}
 </div>
 
 <script>
+// ⚠️ 이 잠금은 어깨너머 시선을 막는 가림막일 뿐, 보안 장치가 아님 (클라이언트 검증은 devtools로 우회 가능).
+// 민감한 재무 수치는 코드 기본값에 넣지 말 것 — 직접 입력하면 localStorage(이 브라우저)에만 저장됨.
 const PWD_HASH = "d80db4fba8a69e24c389fa7a6f12b6ada7726173f57f44864ac22f4ab66291f2";
 async function sha256(s){const b=new TextEncoder().encode(s);const h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('')}
 async function unlock(){
   const v=document.getElementById('pwd').value;
   const h=await sha256(v);
-  if(h===PWD_HASH || sessionStorage.getItem('sim-auth')==='1'){
+  if(h===PWD_HASH){
     sessionStorage.setItem('sim-auth','1');
     document.getElementById('lock').style.display='none';
     document.getElementById('main').style.display='block';
@@ -454,9 +488,9 @@ const HF_TABLE = [
   [47, 78, 109, 125, 140, 156, 172, 187],   // 55세
   [63, 105, 148, 169, 190, 211, 232, 253],  // 60세
   [76, 126, 177, 202, 228, 253, 278, 304],  // 65세
-  [92, 154, 216, 246, 277, 308, 339, 341],  // 70세
-  [114, 191, 267, 305, 343, 367, 367, 367], // 75세
-  [145, 242, 338, 387, 406, 406, 406, 406]  // 80세
+  [92, 154, 216, 246, 277, 308, 339, 341],  // 70세 ⚠️ 마지막 값(341) 증가폭이 어색함 — HF공사 원표와 대조 확인 필요
+  [114, 191, 267, 305, 343, 367, 367, 367], // 75세 (지급 상한 도달 시 평탄)
+  [145, 242, 338, 387, 406, 406, 406, 406]  // 80세 (지급 상한 도달 시 평탄)
 ];
 function lerp(a,b,t){return a+(b-a)*t}
 function getHfMonthly(age, priceManwon){
@@ -564,7 +598,12 @@ function autoHfAge(){
 }
 
 function getInputs(){
-  const num = id => parseFloat(document.getElementById(id).value);
+  const badIds = [];
+  const num = id => {
+    const v = parseFloat(document.getElementById(id).value);
+    if(isNaN(v)){ badIds.push(id); return 0; }
+    return v;
+  };
   const opt = id => { const v=document.getElementById(id).value; return v===''?null:parseFloat(v); };
   const presetName = document.getElementById('inp-preset').value;
   const preset = PRESETS[presetName];
@@ -572,6 +611,9 @@ function getInputs(){
 
   // 환헷지 ON: KRW 환차익 쿠션 제거 → USD 기준 변동성으로 복원 (약 11% 증가)
   const sdMul = (fxHedged && !preset.isKorea) ? (1/0.90) : 1.0;
+  // 환헷지 ON: 헷지 비용(한미 금리차+롤오버)을 전 구간 수익률에서 차감
+  const fxCost = (fxHedged && !preset.isKorea) ? num('inp-fx-cost')/100 : 0;
+  const hedgeAdj = r => r===null ? null : r - fxCost;
 
   let rateAccum, stdevAccum, rateRisk, stdevRisk, rateLate, stdevLate;
   if(presetName==='custom'){
@@ -596,24 +638,28 @@ function getInputs(){
   const retireAge = num('inp-retire-age');
   const endAge = num('inp-end-age');
 
-  return {
+  const inp = {
     birth, wifeBirth, retireAge, endAge,
     retireYear: birth + retireAge,
     endYear: birth + endAge,
     portfolio:num('inp-portfolio'), cash:num('inp-cash'), realestate:num('inp-realestate'),
     save:num('inp-save'), saveGrow:num('inp-savegrow')/100,
     severance:num('inp-severance'), severanceYear:num('inp-severance-year'),
-    rate:num('inp-rate')/100, stdev:baseStdev,
+    rate:num('inp-rate')/100 - fxCost, stdev:baseStdev,
     infl:num('inp-infl')/100,
+    volDrag:document.getElementById('inp-voldrag').checked,
     preset:presetName,
-    fxHedged,
-    rateAccum, stdevAccum, rateRisk, stdevRisk, rateLate, stdevLate,
+    fxHedged, fxCost,
+    rateAccum:hedgeAdj(rateAccum), stdevAccum,
+    rateRisk:hedgeAdj(rateRisk), stdevRisk,
+    rateLate:hedgeAdj(rateLate), stdevLate,
     glide:document.getElementById('inp-glide').checked,
     glideStart:parseInt(document.getElementById('inp-glide-start').value),
     glideYears:parseInt(document.getElementById('inp-glide-years').value),
     glideCurve:document.getElementById('inp-glide-curve').value,
-    nps:num('inp-nps'), npsWife:num('inp-nps-wife'),
-    taxfree:num('inp-taxfree'), kb:num('inp-kb'),
+    nps:num('inp-nps'), npsWife:num('inp-nps-wife'), npsAge:num('inp-nps-age'),
+    taxfree:num('inp-taxfree'), taxfreeAge:num('inp-taxfree-age'), kb:num('inp-kb'),
+    taxRate:num('inp-tax-rate')/100, health:num('inp-health'),
     useHf:document.getElementById('inp-hf').checked,
     hfYear:num('inp-hf-year'), hfPrice:num('inp-hf-price'), hfAge:num('inp-hf-age'),
     tuition:num('inp-tuition'),
@@ -626,6 +672,10 @@ function getInputs(){
     crashCustom:num('inp-crash')/100,
     crashYear:num('inp-crash-year')
   };
+  if(badIds.length){
+    alert('⚠️ 비었거나 잘못된 입력을 0으로 처리했습니다:\n' + badIds.join(', '));
+  }
+  return inp;
 }
 
 function glideFactor(t, curve){
@@ -634,34 +684,29 @@ function glideFactor(t, curve){
   return t;
 }
 
-function getPhaseReturn(y, inp){
-  const rAcc=inp.rateAccum??inp.rate, rRisk=inp.rateRisk??inp.rate, rLate=inp.rateLate??inp.rate;
+// 글라이드 패스는 은퇴 전 구간에서만 유효. 글라이드 완료 후엔 위험기 수준을 유지한다
+// (이전 버전: 글라이드 종료 후 적립기 값으로 복귀하는 버그 → 채권 늘렸다가 다시 주식 100%가 되던 문제)
+function phaseValue(y, inp, vAcc, vRisk, vLate){
   const riskStart = inp.retireYear, riskEnd = inp.retireYear + 4;
-  if(inp.glide){
-    const gEnd = inp.glideStart + inp.glideYears - 1;
-    if(y>=inp.glideStart && y<=gEnd){
-      const t = (y-inp.glideStart+1)/inp.glideYears;
-      return rAcc*(1-glideFactor(t,inp.glideCurve)) + rRisk*glideFactor(t,inp.glideCurve);
+  if(y >= riskStart) return (y <= riskEnd) ? vRisk : vLate;
+  if(inp.glide && inp.glideStart < riskStart){
+    const gEnd = Math.min(inp.glideStart + inp.glideYears - 1, riskStart - 1);
+    if(y > gEnd) return vRisk;
+    if(y >= inp.glideStart){
+      const t = Math.min(1, (y-inp.glideStart+1)/inp.glideYears);
+      const g = glideFactor(t, inp.glideCurve);
+      return vAcc*(1-g) + vRisk*g;
     }
   }
-  if(y < riskStart) return rAcc;
-  if(y >= riskStart && y <= riskEnd) return rRisk;
-  return rLate;
+  return vAcc;
+}
+
+function getPhaseReturn(y, inp){
+  return phaseValue(y, inp, inp.rateAccum??inp.rate, inp.rateRisk??inp.rate, inp.rateLate??inp.rate);
 }
 
 function getPhaseStdev(y, inp, def){
-  const sAcc=inp.stdevAccum??def, sRisk=inp.stdevRisk??def, sLate=inp.stdevLate??def;
-  const riskStart = inp.retireYear, riskEnd = inp.retireYear + 4;
-  if(inp.glide){
-    const gEnd = inp.glideStart + inp.glideYears - 1;
-    if(y>=inp.glideStart && y<=gEnd){
-      const t = (y-inp.glideStart+1)/inp.glideYears;
-      return sAcc*(1-glideFactor(t,inp.glideCurve)) + sRisk*glideFactor(t,inp.glideCurve);
-    }
-  }
-  if(y < riskStart) return sAcc;
-  if(y >= riskStart && y <= riskEnd) return sRisk;
-  return sLate;
+  return phaseValue(y, inp, inp.stdevAccum??def, inp.stdevRisk??def, inp.stdevLate??def);
 }
 
 function randNormal(mu, sigma){
@@ -692,10 +737,13 @@ function simulateCore(inp, opts={}){
     const wifeAge = y - inp.wifeBirth;
 
     // 1. 수익률 결정
-    const meanR = getPhaseReturn(y, inp);
-    let actualR = opts.stochastic ? randNormal(meanR, getPhaseStdev(y,inp,inp.stdev)) : meanR;
+    const sd = getPhaseStdev(y, inp, inp.stdev);
+    let meanR = getPhaseReturn(y, inp);
+    if(!opts.stochastic && inp.volDrag) meanR -= sd*sd/2; // 변동성 드래그 보정 (기하평균 근사)
+    let actualR = opts.stochastic ? randNormal(meanR, sd) : meanR;
     const crashR = getCrashRate(y, opts);
     if(crashR !== null) actualR = crashR;
+    actualR = Math.max(actualR, -0.95); // -100% 초과 손실 차단 (고변동성 MC 꼬리 보호)
 
     // 2. 자산 성장
     asset = asset * (1+actualR);
@@ -728,41 +776,46 @@ function simulateCore(inp, opts={}){
       hfMonthly = getHfMonthly(inp.hfAge, inp.hfPrice);
     }
 
-    // 6. 은퇴 후 현금흐름 (음수 자산 방지 + 가용범위 캡)
-    let cfWithdraw=0, cfNpsSelf=0, cfNpsWife=0, cfTaxfree=0, cfKb=0, cfHousing=0;
-    if(y >= inp.retireYear){
-      const yearsAfterRetire = y - inp.retireYear;
-      cfWithdraw = baseWithdraw * Math.pow(1+inp.infl, yearsAfterRetire);
-      cfTaxfree = inp.taxfree;
-      cfKb = (age>=60 && age<=73) ? inp.kb : 0;
-      cfNpsSelf = (age>=65) ? inp.nps*12 * Math.pow(1+inp.infl, y-2026) : 0;
-      cfNpsWife = (wifeAge>=65) ? inp.npsWife*12 * Math.pow(1+inp.infl, y-2026) : 0;
-      cfHousing = (inp.useHf && y >= inp.hfYear && hfMonthly !== null) ? hfMonthly*12 : 0;
+    // 6. 연금성 수입 (은퇴 여부와 무관, 개시 연령 기준)
+    const inflFactor = Math.pow(1+inp.infl, y-2026);
+    const cfTaxfree = (age >= inp.taxfreeAge) ? inp.taxfree : 0;
+    const cfKb = (age>=60 && age<=73) ? inp.kb : 0;
+    const cfNpsSelf = (age >= inp.npsAge) ? inp.nps*12 * inflFactor : 0;
+    const cfNpsWife = (wifeAge >= inp.npsAge) ? inp.npsWife*12 * inflFactor : 0;
+    const cfHousing = (inp.useHf && y >= inp.hfYear && hfMonthly !== null) ? hfMonthly*12 : 0;
+    const pensionIncome = cfTaxfree + cfKb + cfNpsSelf + cfNpsWife + cfHousing;
 
-      const totalIncome = cfTaxfree + cfKb + cfNpsSelf + cfNpsWife + cfHousing;
-      const available = Math.max(0, asset) + totalIncome;
-      const actualWithdraw = Math.min(cfWithdraw, available);
-      asset += totalIncome - actualWithdraw;
-      cfWithdraw = actualWithdraw;
+    // 7. 은퇴 후: 4% 인출 + 세금·건보료 / 은퇴 전: 연금 수입은 적립
+    let cfWithdraw=0, cfTax=0, cfHealth=0;
+    if(y >= inp.retireYear && baseWithdraw !== null){
+      const yearsAfterRetire = y - inp.retireYear;
+      const target = baseWithdraw * Math.pow(1+inp.infl, yearsAfterRetire);
+      const available = Math.max(0, asset) + pensionIncome;
+      cfWithdraw = Math.min(target, available);
+      cfTax = cfWithdraw * inp.taxRate;             // 인출분 실효세율
+      cfHealth = inp.health*12 * inflFactor;        // 지역건보료 (인플레 연동)
+      asset += pensionIncome - cfWithdraw - cfTax - cfHealth;
+    } else {
+      asset += pensionIncome;
     }
 
-    // 7. 특별 지출 (학자금, 결혼자금)
+    // 8. 특별 지출 (학자금·결혼자금 모두 2026 기준 → 인플레 연동)
     let extraOutgo = 0;
-    if(y>=inp.t1Start && y<=inp.t1End) extraOutgo += inp.tuition;
-    if(y>=inp.t2Start && y<=inp.t2End) extraOutgo += inp.tuition;
-    if(y===inp.m1) extraOutgo += inp.marriage * Math.pow(1+inp.infl, y-2026);
-    if(y===inp.m2) extraOutgo += inp.marriage * Math.pow(1+inp.infl, y-2026);
+    if(y>=inp.t1Start && y<=inp.t1End) extraOutgo += inp.tuition * inflFactor;
+    if(y>=inp.t2Start && y<=inp.t2End) extraOutgo += inp.tuition * inflFactor;
+    if(y===inp.m1) extraOutgo += inp.marriage * inflFactor;
+    if(y===inp.m2) extraOutgo += inp.marriage * inflFactor;
     asset -= extraOutgo;
 
-    // 8. 자산 음수 차단
+    // 9. 자산 음수 차단
     if(asset <= 0){
       if(depleteYear === null) depleteYear = y;
       asset = 0;
     }
 
     series.push({y, age, wifeAge, asset, rate:actualR,
-      cfWithdraw, cfNpsSelf, cfNpsWife, cfTaxfree, cfKb, cfHousing,
-      cfTotal: cfWithdraw + cfNpsSelf + cfNpsWife + cfTaxfree + cfKb + cfHousing,
+      cfWithdraw, cfNpsSelf, cfNpsWife, cfTaxfree, cfKb, cfHousing, cfTax, cfHealth,
+      cfTotal: cfWithdraw + cfNpsSelf + cfNpsWife + cfTaxfree + cfKb + cfHousing - cfTax - cfHealth,
       severance: y===inp.severanceYear ? inp.severance : 0,
       inherit: y===inp.inheritYear ? inp.inherit : 0,
       extraOutgo});
@@ -773,25 +826,31 @@ function simulateCore(inp, opts={}){
 
 function buildCashflowStages(sim, inp){
   const retire = inp.retireYear;
-  const stages = [
-    {label:'은퇴초기', age:`${inp.retireAge}~${inp.retireAge+4}세`, years:`${retire}~${retire+4}`, from:retire, to:retire+4},
-    {label:'본인 NPS 개시', age:'65~69세', years:`${inp.birth+65}~${inp.birth+69}`, from:inp.birth+65, to:inp.birth+69},
-    {label:'완전 연금기', age:'70~73세', years:`${inp.birth+70}~${inp.birth+73}`, from:inp.birth+70, to:inp.birth+73},
-    {label:'KB보험 종료 후', age:`74~${inp.endAge}세`, years:`${inp.birth+74}~${inp.endYear}`, from:inp.birth+74, to:inp.endYear}
+  const npsYear = inp.birth + inp.npsAge;       // 본인 NPS 개시 연도
+  const kbEndYear = inp.birth + 73;             // KB 종신보험 종료 연도
+  const raw = [
+    {label:'은퇴초기', from:retire, to:Math.min(npsYear-1, retire+4)},
+    {label:'본인 NPS 개시', from:Math.max(retire, npsYear), to:Math.max(retire, npsYear)+4},
+    {label:'완전 연금기', from:Math.max(retire, npsYear)+5, to:kbEndYear},
+    {label:'KB보험 종료 후', from:kbEndYear+1, to:inp.endYear}
   ];
-  return stages.map(s=>{
+  return raw.map(s=>{
+    if(s.from > s.to) return null;
     const range = sim.series.filter(x => x.y>=s.from && x.y<=s.to);
     if(range.length===0) return null;
     const mid = range[Math.floor(range.length/2)];
     const realFactor = Math.pow(1+inp.infl, -(mid.y-2026));
     return {
       ...s,
+      age:`${s.from-inp.birth}~${s.to-inp.birth}세`,
+      years:`${s.from}~${s.to}`,
       withdrawReal: Math.round(mid.cfWithdraw * realFactor / 12),
       npsSelfReal: Math.round(mid.cfNpsSelf * realFactor / 12),
       npsWifeReal: Math.round(mid.cfNpsWife * realFactor / 12),
       taxfreeReal: Math.round(mid.cfTaxfree * realFactor / 12),
       kbReal: Math.round(mid.cfKb * realFactor / 12),
       housingReal: Math.round(mid.cfHousing * realFactor / 12),
+      taxHealthReal: Math.round((mid.cfTax + mid.cfHealth) * realFactor / 12),
       totalReal: Math.round(mid.cfTotal * realFactor / 12),
       totalNom: Math.round(mid.cfTotal / 12)
     };
@@ -801,18 +860,19 @@ function buildCashflowStages(sim, inp){
 function renderCashflowTable(stages, inp){
   const t = document.getElementById('cashflow-table');
   const hfCol = inp.useHf ? '<th>🏠 주택<br>연금</th>' : '';
-  let html = `<thead><tr><th>시기</th><th>연령</th><th>📤 4%인출</th><th>💎 비과세<br>연금</th><th>🛡️ KB<br>종신보험</th><th>🏛️ 본인<br>NPS</th><th>🏛️ 사모님<br>NPS</th>${hfCol}<th>💰 총 월수령<br>(실질)</th><th>(명목)</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>시기</th><th>연령</th><th>📤 4%인출</th><th>💎 비과세<br>연금</th><th>🛡️ KB<br>종신보험</th><th>🏛️ 본인<br>NPS</th><th>🏛️ 배우자<br>NPS</th>${hfCol}<th>💸 세금·건보<br>(차감)</th><th>💰 총 월수령<br>(실질·세후)</th><th>(명목)</th></tr></thead><tbody>`;
   stages.forEach(s=>{
     const hfCell = inp.useHf ? `<td class="housing">${s.housingReal>0?s.housingReal+'만':'-'}</td>` : '';
     html += `<tr>
       <td class="stage">${s.label}<br><small>${s.years}</small></td>
       <td>${s.age}</td>
       <td class="withdraw">${s.withdrawReal}만</td>
-      <td class="taxfree">${s.taxfreeReal}만</td>
+      <td class="taxfree">${s.taxfreeReal>0?s.taxfreeReal+'만':'-'}</td>
       <td class="insurance">${s.kbReal>0?s.kbReal+'만':'-'}</td>
       <td class="pension">${s.npsSelfReal>0?s.npsSelfReal+'만':'-'}</td>
       <td class="pension">${s.npsWifeReal>0?s.npsWifeReal+'만':'-'}</td>
       ${hfCell}
+      <td style="color:#dc2626">${s.taxHealthReal>0?'-'+s.taxHealthReal+'만':'-'}</td>
       <td class="total">${s.totalReal}만</td>
       <td style="color:#888;font-size:11px">${s.totalNom}만</td>
     </tr>`;
@@ -822,6 +882,81 @@ function renderCashflowTable(stages, inp){
 }
 
 let chartState = {asset:null, stack:null};
+let lastRender = null;     // 가장 최근 렌더 결과 (기준선 저장용)
+let baselineData = null;   // 비교 기준선 {years, assets, label}
+
+function saveBaseline(){
+  if(!lastRender){ alert('먼저 시뮬레이션을 실행하세요.'); return; }
+  baselineData = {
+    years: lastRender.sim.series.map(s=>s.y),
+    assets: lastRender.sim.series.map(s=>s.asset),
+    label: `${lastRender.label||'단일'} · ${lastRender.inp.preset.toUpperCase()}`
+  };
+  document.getElementById('baseline-info').textContent = '기준선: ' + baselineData.label;
+  drawChart(lastRender.sim, lastRender.inp, lastRender.mcBands);
+}
+function clearBaseline(){
+  baselineData = null;
+  document.getElementById('baseline-info').textContent = '';
+  if(lastRender) drawChart(lastRender.sim, lastRender.inp, lastRender.mcBands);
+}
+
+// ===== 입력값 저장/복원 (localStorage는 이 브라우저에만 저장됨 — 민감 값을 코드에 넣지 않기 위한 장치) =====
+const STORE_KEY = 'retsim-inputs-v1';
+function collectInputs(){
+  const data = {};
+  document.querySelectorAll('#main input[id], #main select[id]').forEach(el=>{
+    if(el.type==='file') return;
+    data[el.id] = (el.type==='checkbox') ? el.checked : el.value;
+  });
+  return data;
+}
+function applyInputs(data){
+  Object.entries(data).forEach(([id,v])=>{
+    const el = document.getElementById(id);
+    if(!el || el.type==='file') return;
+    if(el.type==='checkbox') el.checked = !!v;
+    else el.value = v;
+  });
+  onPresetChange(); onFxChange(); onCrashChange(); onBirthChange(); onHfChange();
+}
+function saveInputsLocal(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectInputs())); }catch(e){}
+}
+function loadInputsLocal(){
+  try{
+    const s = localStorage.getItem(STORE_KEY);
+    if(s) applyInputs(JSON.parse(s));
+  }catch(e){}
+}
+function exportInputs(){
+  const blob = new Blob([JSON.stringify(collectInputs(), null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'retirement-sim-inputs.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importInputs(ev){
+  const f = ev.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      applyInputs(JSON.parse(r.result));
+      saveInputsLocal();
+      alert('✅ 입력값을 불러왔습니다.');
+    }catch(e){ alert('⚠️ JSON 파싱 실패: ' + e.message); }
+  };
+  r.readAsText(f);
+  ev.target.value = '';
+}
+function resetInputs(){
+  if(confirm('이 브라우저에 저장된 입력값을 삭제하고 기본값으로 되돌릴까요?')){
+    localStorage.removeItem(STORE_KEY);
+    location.reload();
+  }
+}
 
 function drawChart(sim, inp, mcBands){
   const c = document.getElementById('chart');
@@ -841,6 +976,10 @@ function drawChart(sim, inp, mcBands){
   if(mcBands){
     maxY = Math.max(maxY, ...mcBands.p95);
     minY = Math.min(minY, ...mcBands.p5);
+  }
+  if(baselineData){
+    maxY = Math.max(maxY, ...baselineData.assets);
+    minY = Math.min(minY, ...baselineData.assets);
   }
   const xMin = xs[0], xMax = xs[xs.length-1];
   const X = y => padL + (y-xMin)/(xMax-xMin)*cw;
@@ -917,6 +1056,23 @@ function drawChart(sim, inp, mcBands){
     ctx.stroke();
   }
 
+  // 기준선 (비교 모드)
+  if(baselineData){
+    ctx.strokeStyle = '#9ca3af';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6,4]);
+    ctx.beginPath();
+    let started = false;
+    baselineData.years.forEach((y,i)=>{
+      if(y < xMin || y > xMax) return;
+      const px = X(y), py = Y(baselineData.assets[i]);
+      if(!started){ ctx.moveTo(px, py); started = true; }
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
   ctx.strokeStyle = '#4a6cf7';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -936,12 +1092,25 @@ function drawChart(sim, inp, mcBands){
     ctx.fillText(Math.round(v/10000*10)/10+'억', 4, Y(v)+4);
   });
 
+  if(baselineData){
+    ctx.font='10px sans-serif';
+    ctx.strokeStyle='#9ca3af';
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(padL+cw-180, padT+34);
+    ctx.lineTo(padL+cw-168, padT+34);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#333';
+    ctx.fillText('📌 기준선', padL+cw-164, padT+37);
+  }
+
   if(mcBands){
     ctx.font='10px sans-serif';
     ctx.fillStyle='#4a6cf7';
     ctx.fillRect(padL+cw-180, padT+4, 12, 3);
     ctx.fillStyle='#333';
-    ctx.fillText('결정론(중심)', padL+cw-164, padT+8);
+    ctx.fillText('대표 경로(산술평균)', padL+cw-164, padT+8);
     ctx.fillStyle='rgba(124, 58, 237, 0.5)';
     ctx.fillRect(padL+cw-90, padT+2, 12, 8);
     ctx.fillStyle='#333';
@@ -973,9 +1142,13 @@ function setupAssetHover(){
     if(point.severance>0) html += `<div class="row"><span class="lbl">💼 퇴직금</span><span class="val">${Math.round(point.severance/10000*10)/10}억</span></div>`;
     if(point.inherit>0) html += `<div class="row"><span class="lbl">🏛️ 상속</span><span class="val">${Math.round(point.inherit/10000*10)/10}억</span></div>`;
     if(point.cfTotal>0){
-      html += `<div class="row"><span class="lbl">월 총수령(명목)</span><span class="val">${Math.round(point.cfTotal/12)}만</span></div>`;
+      html += `<div class="row"><span class="lbl">월 총수령·세후(명목)</span><span class="val">${Math.round(point.cfTotal/12)}만</span></div>`;
       const real = point.cfTotal * Math.pow(1+st.inp.infl,-(point.y-2026))/12;
-      html += `<div class="row"><span class="lbl">월 총수령(실질)</span><span class="val">${Math.round(real)}만</span></div>`;
+      html += `<div class="row"><span class="lbl">월 총수령·세후(실질)</span><span class="val">${Math.round(real)}만</span></div>`;
+    }
+    if(point.cfTax>0 || point.cfHealth>0){
+      const taxReal = (point.cfTax+point.cfHealth) * Math.pow(1+st.inp.infl,-(point.y-2026))/12;
+      html += `<div class="row"><span class="lbl">💸 세금·건보(실질)</span><span class="val">-${Math.round(taxReal)}만</span></div>`;
     }
     if(point.cfHousing>0){
       const hfReal = point.cfHousing * Math.pow(1+st.inp.infl,-(point.y-2026))/12;
@@ -1039,7 +1212,7 @@ function renderStackedChart(sim, inp){
     {key:'kb', color:'#f87171', label:'KB 종신보험'},
     {key:'housing', color:'#fb923c', label:'🏠 주택연금'},
     {key:'npsSelf', color:'#60a5fa', label:'본인 NPS'},
-    {key:'npsWife', color:'#fbbf24', label:'사모님 NPS'}
+    {key:'npsWife', color:'#fbbf24', label:'배우자 NPS'}
   ];
   const stacked = realData.map(d=>{
     let cum=0;
@@ -1089,7 +1262,7 @@ function renderStackedChart(sim, inp){
   });
   ctx.fillStyle='#1a1a2e';
   ctx.font='bold 12px sans-serif';
-  ctx.fillText('월 현금흐름 구성 (실질가치)', padL, padT-4);
+  ctx.fillText('월 현금흐름 구성 (실질가치·세전)', padL, padT-4);
   chartState.stack = {realData, X, Y, padL, padR, padT, padB, cw, ch, W, H, xMin, xMax, maxTotal, inp};
 }
 
@@ -1111,8 +1284,8 @@ function setupStackHover(){
     if(point.kb>0) html += `<div class="row"><span class="lbl">KB 종신</span><span class="val">${Math.round(point.kb)}만</span></div>`;
     if(point.housing>0) html += `<div class="row"><span class="lbl">🏠 주택연금</span><span class="val">${Math.round(point.housing)}만</span></div>`;
     if(point.npsSelf>0) html += `<div class="row"><span class="lbl">본인 NPS</span><span class="val">${Math.round(point.npsSelf)}만</span></div>`;
-    if(point.npsWife>0) html += `<div class="row"><span class="lbl">사모님 NPS</span><span class="val">${Math.round(point.npsWife)}만</span></div>`;
-    html += `<div class="row" style="border-top:1px solid #444;margin-top:4px;padding-top:4px"><span class="lbl"><b>총 월수령</b></span><span class="val" style="color:#fbbf24"><b>${Math.round(point.total)}만</b></span></div>`;
+    if(point.npsWife>0) html += `<div class="row"><span class="lbl">배우자 NPS</span><span class="val">${Math.round(point.npsWife)}만</span></div>`;
+    html += `<div class="row" style="border-top:1px solid #444;margin-top:4px;padding-top:4px"><span class="lbl"><b>총 월수령(세전)</b></span><span class="val" style="color:#fbbf24"><b>${Math.round(point.total)}만</b></span></div>`;
     tt.innerHTML = html;
     tt.style.display='block';
     let left = mx + 15;
@@ -1131,10 +1304,11 @@ function buildEvents(inp, sim, crashLabel){
   ev.push({y:inp.t2Start, age:inp.t2Start-inp.birth, text:`<b>둘째 학자금 시작</b> (${inp.tuition}만/년)`});
   if(inp.inherit>0) ev.push({y:inp.inheritYear, age:inp.inheritYear-inp.birth, text:`<b>🏛️ 상속재산</b> ${Math.round(inp.inherit/10000*10)/10}억 일시금`});
   if(inp.severance>0) ev.push({y:inp.severanceYear, age:inp.severanceYear-inp.birth, text:`<b>💼 퇴직금</b> ${Math.round(inp.severance/10000*10)/10}억 일시금`});
-  ev.push({y:inp.retireYear, age:inp.retireAge, text:`<b>은퇴 시작</b> · 자산(퇴직금포함) ${Math.round(sim.assetAtRetire/10000*10)/10}억 · 첫해 4%인출 ${Math.round(sim.baseWithdraw/12)}만/월 + 비과세 ${Math.round(inp.taxfree/12)}만/월 + KB ${Math.round(inp.kb/12)}만/월`});
-  ev.push({y:inp.birth+65, age:65, text:`<b>본인 국민연금 개시</b> (월 ${inp.nps}만 + 인플레 연동)`});
-  ev.push({y:inp.wifeBirth+65, age:inp.wifeBirth+65-inp.birth, text:`<b>사모님 국민연금 개시</b> (월 ${inp.npsWife}만 + 인플레 연동)`});
-  ev.push({y:inp.birth+73, age:73, text:`<b>KB 종신보험 종료</b> · 비과세연금 ${inp.taxfree}만/년은 평생 유지`});
+  ev.push({y:inp.retireYear, age:inp.retireAge, text:`<b>은퇴 시작</b> · 자산(퇴직금포함) ${Math.round(sim.assetAtRetire/10000*10)/10}억 · 첫해 4%인출 ${Math.round(sim.baseWithdraw/12)}만/월`});
+  if(inp.taxfree>0) ev.push({y:inp.birth+inp.taxfreeAge, age:inp.taxfreeAge, text:`<b>💎 비과세연금 개시</b> (${inp.taxfree}만/년, 명목 고정 · 평생)`});
+  if(inp.nps>0) ev.push({y:inp.birth+inp.npsAge, age:inp.npsAge, text:`<b>본인 국민연금 개시</b> (월 ${inp.nps}만 + 인플레 연동)`});
+  if(inp.npsWife>0) ev.push({y:inp.wifeBirth+inp.npsAge, age:inp.wifeBirth+inp.npsAge-inp.birth, text:`<b>배우자 국민연금 개시</b> (월 ${inp.npsWife}만 + 인플레 연동)`});
+  if(inp.kb>0) ev.push({y:inp.birth+73, age:73, text:`<b>KB 종신보험 종료</b>`});
   if(inp.useHf && sim.hfMonthly){
     ev.push({y:inp.hfYear, age:inp.hfYear-inp.birth, 
       text:`<b>🏠 주택연금 가입</b> · 주택 ${Math.round(inp.hfPrice/10000*10)/10}억, 연소자 ${inp.hfAge}세 · 월 ${Math.round(sim.hfMonthly)}만 평생 정액`});
@@ -1153,6 +1327,7 @@ function buildEvents(inp, sim, crashLabel){
 }
 
 function renderResults(sim, inp, mcResult, label, mcBands, crashLabel){
+  lastRender = {sim, inp, mcBands, label};
   document.getElementById('results').style.display = 'block';
   const cards = document.getElementById('result-cards');
   cards.innerHTML = '';
@@ -1189,8 +1364,21 @@ function renderResults(sim, inp, mcResult, label, mcBands, crashLabel){
   }
   addCard(`👴 ${inp.endAge}세(${inp.endYear}) 자산`, Math.round(aEnd.asset/10000*10)/10+'억', '인출 후 잔여', survive?'ok':'bad');
   addCard('🛡️ 자산 지속성', survive?`✅ ${inp.endAge}세까지`:`⚠️ ${sim.depleteYear}년 고갈`, '', survive?'ok':'bad');
+  if(!survive){
+    // 자산 고갈 ≠ 소득 0원: 국민연금·종신연금·주택연금은 계속 지급됨
+    const d = sim.series.find(s=>s.y===sim.depleteYear) || aEnd;
+    const floorNom = d.cfNpsSelf + d.cfNpsWife + d.cfTaxfree + d.cfKb + d.cfHousing - d.cfHealth;
+    const floorReal = Math.round(floorNom * Math.pow(1+inp.infl, -(d.y-2026)) / 12);
+    addCard('🪙 고갈 후 월 연금소득', floorReal+'만 (실질)', '연금성 수입은 계속 지급 (건보료 차감)', 'warn');
+  }
+  if(baselineData){
+    const bEnd = baselineData.assets[baselineData.assets.length-1];
+    const diff = aEnd.asset - bEnd;
+    addCard('📌 기준선 대비 (말년)', (diff>=0?'+':'')+(Math.round(diff/10000*10)/10)+'억', baselineData.label, diff>=0?'ok':'warn');
+  }
   if(mcResult){
-    addCard('🎲 MC 성공률', mcResult.successRate.toFixed(1)+'%', `${inp.mcRuns}회`, mcResult.successRate>=90?'ok':(mcResult.successRate>=70?'warn':'bad'));
+    addCard('🎲 MC 성공률', mcResult.successRate.toFixed(1)+'%', `${inp.mcRuns}회 · 한 번도 고갈 안 됨 기준`, mcResult.successRate>=90?'ok':(mcResult.successRate>=70?'warn':'bad'));
+    addCard('🌱 말년 자산>0 비율', mcResult.endPositive.toFixed(1)+'%', '일시 고갈 후 연금으로 회복한 경로 포함');
     addCard(`📊 MC 중앙값(${inp.endAge}세)`, Math.round(mcResult.p50/10000*10)/10+'억', `5%~95%: ${Math.round(mcResult.p5/10000*10)/10}~${Math.round(mcResult.p95/10000*10)/10}억`);
   }
 
@@ -1213,15 +1401,27 @@ function runSingle(){
 function runMC(){
   const inp = getInputs();
   const runs = inp.mcRuns;
+  // 위기 시나리오가 선택돼 있으면 MC에 결합 (위기년 구간은 시나리오 수익률로 고정)
+  let crashOpts = {};
+  let crashLabel = null;
+  if(inp.crashScenario !== 'none'){
+    const scenario = CRASH_SCENARIOS[inp.crashScenario];
+    const pattern = inp.crashScenario==='custom'
+      ? [inp.crashCustom, 0.15, 0.15]
+      : (inp.fxHedged ? scenario.patternHedged : scenario.pattern);
+    crashOpts = {crashYear: inp.crashYear, crashPattern: pattern};
+    crashLabel = scenario.name + ` (${inp.crashYear}년, MC 결합)`;
+  }
   const allPaths = [];
   const finals = [];
-  let successes = 0;
+  let successes = 0, endPositives = 0;
   for(let i=0;i<runs;i++){
-    const s = simulateCore(inp, {stochastic:true});
+    const s = simulateCore(inp, {stochastic:true, ...crashOpts});
     allPaths.push(s.series.map(x=>x.asset));
     const aEnd = s.series[s.series.length-1];
     finals.push(aEnd.asset);
     if(s.depleteYear===null || s.depleteYear>inp.endYear) successes++;
+    if(aEnd.asset > 0) endPositives++;
   }
   const years = [];
   for(let y=2026;y<=inp.endYear;y++) years.push(y);
@@ -1238,9 +1438,9 @@ function runMC(){
   const mcBands = {years, p5, p25, p50, p75, p95};
   finals.sort((a,b)=>a-b);
   const p = q => finals[Math.floor(runs*q)];
-  const mcResult = {successRate: successes/runs*100, p5:p(0.05), p50:p(0.50), p95:p(0.95)};
-  const simBase = simulateCore(inp, {stochastic:false});
-  renderResults(simBase, inp, mcResult, `Monte Carlo (${runs}회)`, mcBands);
+  const mcResult = {successRate: successes/runs*100, endPositive: endPositives/runs*100, p5:p(0.05), p50:p(0.50), p95:p(0.95)};
+  const simBase = simulateCore(inp, {stochastic:false, ...crashOpts});
+  renderResults(simBase, inp, mcResult, `Monte Carlo (${runs}회)${crashLabel?' + 위기':''}`, mcBands, crashLabel);
 }
 
 function runCrashSim(){
@@ -1271,11 +1471,13 @@ function runCrashSim(){
   renderResults(sim, inp, null, `위기: ${scenario.name}`, null, crashLabel);
 }
 
+loadInputsLocal();           // 저장된 입력값 복원 (applyInputs가 on*Change 핸들러도 호출)
 onPresetChange();
 onFxChange();
 onCrashChange();
 onBirthChange();
 onHfChange();
+document.getElementById('main').addEventListener('change', saveInputsLocal); // 변경 시 자동 저장
 </script>
 </body>
 </html>
