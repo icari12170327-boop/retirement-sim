@@ -172,12 +172,18 @@ canvas{width:100%;height:100%;cursor:crosshair}
           <option value="lazy">😴 레이지 포트폴리오</option>
           <option value="tdf2040">🎯 타겟데이트 2040</option>
           <option value="allweather">🌦️ All Weather (사계절)</option>
+          <option value="permanent">🛡️ 영구 포트폴리오 (해리 브라운)</option>
+          <option value="butterfly">🦋 골든 버터플라이</option>
+          <option value="vt">🌍 전세계 주식 (VT형)</option>
         </optgroup>
         <optgroup label="── 한국형 ──">
           <option value="korea-tax">🇰🇷 한국 절세형 (연금/ISA)</option>
         </optgroup>
         <optgroup label="── 비교·시연용 ──">
           <option value="deposit">🏦 정기예금 100% (고갈 시연용)</option>
+          <option value="kospi">🇰🇷 코스피 100% (홈 바이어스 시연)</option>
+          <option value="gold100">🥇 금 100% (단독 보유 시연)</option>
+          <option value="nasdaq2x">⚡ 나스닥 2x 레버리지 (변동성 침식 시연)</option>
         </optgroup>
         <option value="custom">⚙️ 커스텀 (직접 입력)</option>
       </select>
@@ -441,14 +447,33 @@ const PRESETS = {
     accum:7.8,accumSd:10.2,risk:7.8,riskSd:10.2,late:7.8,lateSd:10.2},
   'tdf2040': {info:'🎯 타겟데이트 2040 (원화): 주식 55 + 채권 35 + 단기채 10. 7.5% / 10.1%. 샤프 0.40.', 
     accum:7.5,accumSd:10.1,risk:7.5,riskSd:10.1,late:7.5,lateSd:10.1},
-  'allweather': {info:'🌦️ All Weather (원화): 주식30/장기채40/중기채15/금7.5/원자재7.5. 6.5% / 7.6%. 샤프 0.39.', 
+  'allweather': {info:'🌦️ All Weather (원화): 주식30/장기채40/중기채15/금7.5/원자재7.5. 6.5% / 7.6%. 샤프 0.39.',
     accum:6.5,accumSd:7.6,risk:6.5,riskSd:7.6,late:6.5,lateSd:7.6},
+  'permanent': {info:'🛡️ 영구 포트폴리오 (원화): 주식25/장기채25/금25/현금25. 5.8% / 6.5%. 샤프 0.35. 해리 브라운 — 호황·불황·인플레·디플레 4국면 전천후 방어. 위기 시나리오 6종과 조합해 보세요.',
+    accum:5.8,accumSd:6.5,risk:5.8,riskSd:6.5,late:5.8,lateSd:6.5},
+  'butterfly': {info:'🦋 골든 버터플라이 (원화): 전체주식20/소형가치20/장기채20/단기채20/금20. 6.8% / 8.0%. 샤프 0.41. 영구 포트폴리오의 수익 보강판.',
+    accum:6.8,accumSd:8.0,risk:6.8,riskSd:8.0,late:6.8,lateSd:8.0},
+  'vt': {info:'🌍 전세계 주식 VT형 (원화): 미국60/선진국25/신흥국15. 8.8% / 12.6%. 샤프 0.42. 미국 몰빵 vs 글로벌 분산 비교용 — S&P 500을 📌 기준선으로 잡고 비교해 보세요.',
+    accum:8.8,accumSd:12.6,risk:8.8,riskSd:12.6,late:8.8,lateSd:12.6},
   'korea-tax': {info:'🇰🇷 한국 절세형 (원화): 연금/IRP/ISA 활용. 명목 7.5% + 절세효과 ≈ 실효 8.5% / 11.0%.',
     accum:8.5,accumSd:11.0,risk:8.5,riskSd:11.0,late:8.5,lateSd:11.0, isKorea:true},
+  // ===== 비교·시연용 프리셋 =====
+  // 좋은 전략을 보여주는 게 아니라 "이렇게 하면 어떻게 되는가"를 숫자로 보여주는 반면교사 시리즈.
   // 시연용: 정기예금만 굴리면 명목 3%가 인플레(기본 2.2%)에 거의 다 잠식되어
   // 4% 인출(인플레 조정)을 버티지 못하고 고갈되는 모습을 보여주기 위한 프리셋
   'deposit': {info:'🏦 정기예금 100% (원화): 3.0% / 표준편차 0.3%. 인플레 차감 시 실질 ~0.8% — 4% 인출을 못 버티고 고갈됩니다. 투자 없이 예금만 할 때의 위험을 보여주는 시연용.',
     accum:3.0,accumSd:0.3,risk:3.0,riskSd:0.3,late:3.0,lateSd:0.3, isKorea:true},
+  // 홈 바이어스 시연: 변동성은 나스닥급인데 장기 수익은 예금+α (코스피 장기 박스권)
+  'kospi': {info:'🇰🇷 코스피 100% (원화): 5.5% / 표준편차 18.0%. 샤프 0.11 — 변동성은 나스닥급, 수익은 예금+α. 한국 주식만 보유하는 홈 바이어스의 비효율을 보여주는 시연용.',
+    accum:5.5,accumSd:18.0,risk:5.5,riskSd:18.0,late:5.5,lateSd:18.0, isKorea:true},
+  // 금 단독 보유 시연: 인플레 헤지는 되지만 현금흐름이 없고 변동성이 커서 단독으론 비효율
+  'gold100': {info:'🥇 금 100% (원화): 5.0% / 표준편차 15.3%. 샤프 0.10 — 인플레 헤지는 되지만 이자·배당이 없어 단독 보유는 비효율. 포트폴리오 일부(5~10%)로 쓸 때와 다르다는 시연용.',
+    accum:5.0,accumSd:15.3,risk:5.0,riskSd:15.3,late:5.0,lateSd:15.3},
+  // 레버리지 시연: 산술평균은 높아 보여도 변동성 침식(σ²/2 ≈ 연 -7.8%p)이 어마어마함.
+  // 단일 시뮬(산술평균 복리)은 침식이 안 보이므로 반드시 MC 또는 변동성 드래그 보정과 함께 볼 것.
+  // 정규분포 모델은 실제 일간 리밸런싱 레버리지 ETF의 경로 의존 침식을 오히려 과소평가함.
+  'nasdaq2x': {info:'⚡ 나스닥 2x 레버리지 (원화): 24.0% / 표준편차 39.6%. ⚠️ 변동성 침식 시연용 — 단일 시뮬은 침식이 안 보입니다. 반드시 🎲 MC 또는 "변동성 드래그 보정"을 켜고 보세요. 실제 레버리지 ETF는 이 모델보다도 더 나쁩니다.',
+    accum:24.0,accumSd:39.6,risk:24.0,riskSd:39.6,late:24.0,lateSd:39.6},
   'custom': {info:'⚙️ 커스텀: 아래 입력칸에 직접 입력하세요.', custom:true}
 };
 
@@ -564,7 +589,8 @@ function updateGlideWarn(){
   const glideOn = document.getElementById('inp-glide').checked;
   const preset = document.getElementById('inp-preset').value;
   const flatPresets = ['off','sp500','nasdaq','sp-nasdaq','buffett','twofund','dividend',
-                       'balanced60','3fund','lazy','tdf2040','allweather','korea-tax','deposit'];
+                       'balanced60','3fund','lazy','tdf2040','allweather','korea-tax',
+                       'permanent','butterfly','vt','deposit','kospi','gold100','nasdaq2x'];
   const ineffective = glideOn && flatPresets.includes(preset);
   document.getElementById('glide-warn').classList.toggle('hide', !ineffective);
 }
