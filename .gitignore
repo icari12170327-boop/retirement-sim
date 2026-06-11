@@ -1,0 +1,3 @@
+# 개인 재무 입력값 — 절대 커밋 금지
+retirement-sim-inputs*.json
+*.local.json
