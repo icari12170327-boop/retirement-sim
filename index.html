@@ -176,6 +176,9 @@ canvas{width:100%;height:100%;cursor:crosshair}
         <optgroup label="── 한국형 ──">
           <option value="korea-tax">🇰🇷 한국 절세형 (연금/ISA)</option>
         </optgroup>
+        <optgroup label="── 비교·시연용 ──">
+          <option value="deposit">🏦 정기예금 100% (고갈 시연용)</option>
+        </optgroup>
         <option value="custom">⚙️ 커스텀 (직접 입력)</option>
       </select>
       <div class="preset-info" id="preset-info">기본 수익률을 모든 구간에 균일 적용합니다.</div>
@@ -440,8 +443,12 @@ const PRESETS = {
     accum:7.5,accumSd:10.1,risk:7.5,riskSd:10.1,late:7.5,lateSd:10.1},
   'allweather': {info:'🌦️ All Weather (원화): 주식30/장기채40/중기채15/금7.5/원자재7.5. 6.5% / 7.6%. 샤프 0.39.', 
     accum:6.5,accumSd:7.6,risk:6.5,riskSd:7.6,late:6.5,lateSd:7.6},
-  'korea-tax': {info:'🇰🇷 한국 절세형 (원화): 연금/IRP/ISA 활용. 명목 7.5% + 절세효과 ≈ 실효 8.5% / 11.0%.', 
+  'korea-tax': {info:'🇰🇷 한국 절세형 (원화): 연금/IRP/ISA 활용. 명목 7.5% + 절세효과 ≈ 실효 8.5% / 11.0%.',
     accum:8.5,accumSd:11.0,risk:8.5,riskSd:11.0,late:8.5,lateSd:11.0, isKorea:true},
+  // 시연용: 정기예금만 굴리면 명목 3%가 인플레(기본 2.2%)에 거의 다 잠식되어
+  // 4% 인출(인플레 조정)을 버티지 못하고 고갈되는 모습을 보여주기 위한 프리셋
+  'deposit': {info:'🏦 정기예금 100% (원화): 3.0% / 표준편차 0.3%. 인플레 차감 시 실질 ~0.8% — 4% 인출을 못 버티고 고갈됩니다. 투자 없이 예금만 할 때의 위험을 보여주는 시연용.',
+    accum:3.0,accumSd:0.3,risk:3.0,riskSd:0.3,late:3.0,lateSd:0.3, isKorea:true},
   'custom': {info:'⚙️ 커스텀: 아래 입력칸에 직접 입력하세요.', custom:true}
 };
 
@@ -557,7 +564,7 @@ function updateGlideWarn(){
   const glideOn = document.getElementById('inp-glide').checked;
   const preset = document.getElementById('inp-preset').value;
   const flatPresets = ['off','sp500','nasdaq','sp-nasdaq','buffett','twofund','dividend',
-                       'balanced60','3fund','lazy','tdf2040','allweather','korea-tax'];
+                       'balanced60','3fund','lazy','tdf2040','allweather','korea-tax','deposit'];
   const ineffective = glideOn && flatPresets.includes(preset);
   document.getElementById('glide-warn').classList.toggle('hide', !ineffective);
 }
