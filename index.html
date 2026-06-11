@@ -208,8 +208,16 @@ canvas{width:100%;height:100%;cursor:crosshair}
         <input type="checkbox" id="inp-glide" onchange="onGlideChange()" style="width:auto"/>
         글라이드 패스 활성화
       </label>
+      <div class="preset-info">
+        은퇴가 가까워질수록 수익률·변동성을 <b>적립기(공격) → 위험기(보수)</b> 수준으로 점진 전환하는 Bond Tent 전략.
+        은퇴 직전·직후 폭락(시퀀스 리스크)에 대비해 미리 안전자산 비중을 높이는 효과를 모사합니다.<br>
+        · 전환 시작 연도부터 전환 기간에 걸쳐 매년 위험기 값에 가까워짐<br>
+        · 전환 완료 후~은퇴 전에는 위험기 수준을 그대로 유지<br>
+        · 자산 차트의 주황 음영 = 전환 구간
+      </div>
       <label>전환 시작 연도</label>
       <input type="number" id="inp-glide-start" value="2035" min="2026" max="2044"/>
+      <small>은퇴 연도 이후로 설정하면 글라이드는 무시됩니다 (은퇴 전 구간 전용)</small>
       <label>전환 기간 (년)</label>
       <select id="inp-glide-years">
         <option value="3">3년 (급격)</option>
@@ -219,12 +227,14 @@ canvas{width:100%;height:100%;cursor:crosshair}
       </select>
       <label>전환 곡선</label>
       <select id="inp-glide-curve">
-        <option value="linear" selected>선형</option>
-        <option value="ease-in">완만→가속</option>
-        <option value="ease-out">가속→완만</option>
+        <option value="linear" selected>선형 (매년 균등 전환)</option>
+        <option value="ease-in">완만→가속 (초반 천천히, 막판 빠르게)</option>
+        <option value="ease-out">가속→완만 (초반 빠르게, 막판 천천히)</option>
       </select>
       <div class="preset-warning hide" id="glide-warn">
         ⚠️ 글라이드 패스는 시기별 수익률이 다를 때만 효과가 있습니다.
+        선택한 프리셋은 적립기=위험기=후기 수익률이 같아서(단일 수익률) 켜도 결과가 변하지 않습니다.
+        Bond Tent 계열 프리셋(공격형~매우 보수형) 또는 커스텀을 사용하세요.
       </div>
     </div>
 
@@ -678,27 +688,48 @@ function getInputs(){
   return inp;
 }
 
+// 글라이드 진행률 t(0~1)를 전환 곡선 모양에 따라 변환한다.
+//   linear  : 매년 균등하게 전환 (t 그대로)
+//   ease-in : t² — 초반엔 천천히, 은퇴가 임박할수록 빠르게 보수화
+//   ease-out: 1-(1-t)² — 초반에 빠르게 보수화하고 막판은 미세 조정
+// 반환값 g는 위험기 값의 가중치 (0=완전 적립기, 1=완전 위험기)
 function glideFactor(t, curve){
   if(curve==='ease-in') return t*t;
   if(curve==='ease-out') return 1-(1-t)*(1-t);
   return t;
 }
 
-// 글라이드 패스는 은퇴 전 구간에서만 유효. 글라이드 완료 후엔 위험기 수준을 유지한다
-// (이전 버전: 글라이드 종료 후 적립기 값으로 복귀하는 버그 → 채권 늘렸다가 다시 주식 100%가 되던 문제)
+// ===== 시기별 수익률/변동성 결정 (수익률·표준편차 공통 로직) =====
+// 생애를 3단계로 나눠 각각 다른 값을 적용한다:
+//   적립기(vAcc):  ~은퇴 전        — 주식 비중 높음, 공격적
+//   위험기(vRisk): 은퇴~은퇴+4년   — 시퀀스 리스크 구간(은퇴 직후 폭락이 가장 치명적), 보수적
+//   후기(vLate):   은퇴+5년~       — 위험 구간 통과 후 중간 수준
+//
+// 글라이드 패스(Bond Tent) ON 시: glideStart부터 glideYears에 걸쳐
+// 적립기 → 위험기 값으로 점진 블렌딩한다. 블렌딩 공식: vAcc*(1-g) + vRisk*g
+//   예) 적립 9.0% → 위험 8.0%, 2035년 시작·5년·선형이면
+//       2035=8.8% → 2036=8.6% → 2037=8.4% → 2038=8.2% → 2039=8.0%
+//
+// 주의 1: 전환 완료 후~은퇴 전 구간은 위험기 값을 유지한다.
+//   (v3.3까지는 이 구간에서 적립기 값으로 복귀하는 버그가 있었음
+//    — 채권을 늘렸다가 은퇴 직전에 도로 주식 100%로 되돌리는 셈이었음)
+// 주의 2: 글라이드는 은퇴 전 자산 배분 전환을 모사하므로 glideStart가
+//   은퇴 연도 이후면 무시된다. 전환 기간이 은퇴를 넘으면 은퇴 전년도에서 잘린다.
+// 주의 3: 적립기=위험기인 단일 수익률 프리셋에서는 블렌딩해도 같은 값이라
+//   효과가 없다 (UI에서 glide-warn으로 경고).
 function phaseValue(y, inp, vAcc, vRisk, vLate){
   const riskStart = inp.retireYear, riskEnd = inp.retireYear + 4;
   if(y >= riskStart) return (y <= riskEnd) ? vRisk : vLate;
   if(inp.glide && inp.glideStart < riskStart){
-    const gEnd = Math.min(inp.glideStart + inp.glideYears - 1, riskStart - 1);
-    if(y > gEnd) return vRisk;
-    if(y >= inp.glideStart){
+    const gEnd = Math.min(inp.glideStart + inp.glideYears - 1, riskStart - 1); // 은퇴 전년도까지로 제한
+    if(y > gEnd) return vRisk; // 전환 완료 후: 위험기 수준 유지
+    if(y >= inp.glideStart){   // 전환 중: 적립기→위험기 블렌딩
       const t = Math.min(1, (y-inp.glideStart+1)/inp.glideYears);
       const g = glideFactor(t, inp.glideCurve);
       return vAcc*(1-g) + vRisk*g;
     }
   }
-  return vAcc;
+  return vAcc; // 전환 시작 전 (또는 글라이드 OFF): 적립기
 }
 
 function getPhaseReturn(y, inp){
